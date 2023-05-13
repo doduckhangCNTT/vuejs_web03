@@ -6,16 +6,23 @@ import {
   checkDuplicateEmployeeCode,
 } from "../../functions/ValidateForm";
 import { showCombobox } from "../../functions/Combobox";
+import MISAInput from "../../components/MISAInput.vue";
 
 export default {
   name: "EmployeeForm",
   props: ["id"],
-  components: {},
+  components: { MISAInput },
   data() {
     return {
       employeeId: "",
-      employee: {},
+      employee: {
+        Gender: 0,
+      },
+      department: {},
       employees: [],
+      departments: [],
+      inputs: [],
+      currentIndex: 0, // index của thẻ input hiện tại được chọn
     };
   },
   async created() {
@@ -29,6 +36,8 @@ export default {
         });
       }
     );
+    // Sử dụng tabIndex khi vào form info employee
+    // useTabIndex();
 
     this.employeeId = this.$route.params.id;
     if (this.isAdd) {
@@ -63,15 +72,103 @@ export default {
         } catch (error) {
           console.log(error.message);
         }
+
+        if (this.employee?.DepartmentId) {
+          try {
+            const res = await getData(
+              `https://cukcuk.manhnv.net/api/v1/Departments/${this.employee?.DepartmentId}`
+            );
+            console.log("Data: ", res.data);
+            this.department = res.data;
+            // this.employee.DepartmentName = res.data.DepartmentName;
+          } catch (error) {
+            console.log(error);
+          }
+        }
       }
       // Thực hiện hiển thị thông báo trạng thái put
     }
 
-    const res = await getData("https://cukcuk.manhnv.net/api/v1/Employees");
-    this.employees = res.data;
+    // Thực hiện lấy toàn bộ các phòng ban
+    try {
+      const res = await getData(`https://cukcuk.manhnv.net/api/v1/Departments`);
+      this.departments = res.data;
+    } catch (error) {
+      console.log(error.message);
+    }
+
+    // Thực hiện lấy toàn bộ employees để check mã trùng lặp
+    try {
+      const res = await getData("https://cukcuk.manhnv.net/api/v1/Employees");
+      this.employees = res.data;
+    } catch (error) {
+      console.log(error.message);
+    }
   },
-  mounted() {},
+  mounted() {
+    // =================== Handel Tab - Start =======================
+    // Lấy toàn bộ những thẻ có thuộc tính "Ref"
+    const tagsContainRefAttr = Object.values(this.$refs);
+    const inputs = [];
+    // Kiểm tra những thẻ khác có phải là thẻ INPUT hoặc BUTTON hay không
+    tagsContainRefAttr.forEach((input) => {
+      if (input.nodeName === "INPUT" || input.nodeName === "BUTTON") {
+        inputs.push(input);
+      }
+    });
+    // Thêm xử lý sự kiện khi nhấn phím Tab
+    inputs.forEach((input, index) => {
+      input.addEventListener("keydown", (event) => {
+        if (
+          event.key === "Tab" &&
+          !event.shiftKey &&
+          index === inputs.length - 1
+        ) {
+          // Nếu đang ở input cuối cùng và nhấn phím Tab, chuyển về input đầu tiên
+          event.preventDefault();
+          inputs[0].focus();
+        }
+      });
+    });
+    // Thêm xử lý sự kiện khi nhả phím Tab
+    inputs.forEach((input, index) => {
+      input.addEventListener("keyup", (event) => {
+        if (event.key === "Tab" && event.shiftKey && index === 0) {
+          // Nếu đang ở input đầu tiên và nhấn Shift + Tab, chuyển về input cuối cùng
+          event.preventDefault();
+          inputs[inputs.length - 1].focus();
+        }
+      });
+    });
+    // =================== Handel Tab - End =======================
+  },
+  beforeUpdate() {
+    // Thực hiện xóa class "invalid" khỏi thẻ input khi thay đổi giá trị trên đó
+    if (this.employee.FullName) {
+      const tagCurrent = this.$refs.inputFullName;
+      this.removeInvalidInputForm(tagCurrent);
+    }
+
+    if (this.employee.EmployeeCode) {
+      const tagCurrent = this.$refs.textCodeEmployee;
+      this.removeInvalidInputForm(tagCurrent);
+    }
+
+    if (this.employee.DepartmentId) {
+      const tagCurrent = this.$refs.comboboxDepartment;
+      this.removeInvalidInputForm(tagCurrent);
+    }
+  },
   watch: {
+    /**
+     * Params:
+     *  + newValue: giá trị mới
+     *  + oldValue: giá trị cũ
+     * Des: Thực hiện theo dõi "employee.name"
+     * Author: DDKhang
+     * CreateAt: 11/5/2023
+     * ModifierAt: 11/5/2023
+     */
     "employee.name": function (newValue, oldValue) {
       if (newValue.trim() != "") {
         const fullName = this.employee.FullName.toUpperCase();
@@ -80,6 +177,28 @@ export default {
     },
   },
   methods: {
+    /**
+     * Params:
+     *  + tagCurrent: thẻ input hiện tại
+     * Des: Thực hiện xóa class "invalid" từ thẻ cha của input đó
+     * Author: DDKhang
+     * CreateAt: 11/5/2023
+     * ModifierAt: 11/5/2023
+     */
+    removeInvalidInputForm(tagCurrent) {
+      // Tham chieu len thẻ cha (".formGroup")
+      const tagParent = tagCurrent.closest(".form-group");
+      tagParent.classList.remove("invalid");
+      tagCurrent.setAttribute("title", "");
+    },
+
+    /**
+     * Params:
+     * Des: Thực hiện chuyển sang trang table employee khi nhấn đóng form info
+     * Author: DDKhang
+     * CreateAt: 11/5/2023
+     * ModifierAt: 11/5/2023
+     */
     handleCloseFormEmployeeInfo() {
       this.$router.push("/employee");
     },
@@ -102,12 +221,12 @@ export default {
       if (!checkFullName.status || !checkCodeEmployee.status) {
         return ShowValidate(checkFullName.msg);
       }
-      if (isCheckDuplicateEmployeeCode.status) {
-        return ShowValidate(isCheckDuplicateEmployeeCode.msg);
-      }
 
       if (this.isAdd) {
         // Thuc hien goi api post
+        if (isCheckDuplicateEmployeeCode.status) {
+          return ShowValidate(isCheckDuplicateEmployeeCode.msg);
+        }
         this.$axios
           .post(`https://cukcuk.manhnv.net/api/v1/Employees`, this.employee)
           .then((res) => {
@@ -117,6 +236,7 @@ export default {
           .catch((err) => {
             CatchError(err);
           });
+        console.log("Employee: ", this.employee);
       } else {
         // Thuc hien goi api put
         this.$axios
@@ -132,26 +252,98 @@ export default {
             CatchError(err);
           });
       }
+      this.handleCloseFormEmployeeInfo();
     },
 
-    handleChangeInput() {},
-
-    validateInput(inputValue, inputId, inputType) {
-      // let formEmployee = document.getElementById("form-employee");
-      // let textInput = formEmployee.querySelector(`#${inputId}`);
-      // let formGroup = textInput.closest(".form-group");
-      // let showErrorElement = formGroup.querySelector(".form-message--error");
-      // if (!inputValue || inputValue?.trim() === "") {
-      //   formGroup.classList.add("invalid");
-      //   showErrorElement.innerText = "Vui long nhap thong tin";
-      // }
+    /**
+     * Params:
+     * Des: Thực hiện bắt sự thay đổi trên input
+     * Author: DDKhang
+     * CreateAt: 3/5/2023
+     * ModifierAt: 3/5/2023
+     */
+    handleChangeInput() {
+      const tagCurrent = event.currentTarget;
+      // Tham chieu len thẻ cha (".formGroup")
+      const tagParent = tagCurrent.closest(".form-group");
+      tagParent.classList.remove("invalid");
+      tagCurrent.setAttribute("title", "");
     },
-
+    /**
+     * Params:
+     * Des: Thực hiện validate input
+     * Author: DDKhang
+     * CreateAt: 3/5/2023
+     * ModifierAt: 3/5/2023
+     */
+    validateInput() {
+      const tagCurrent = event.currentTarget;
+      const value = tagCurrent.value;
+      if (!value) {
+        // Tham chieu len thẻ cha (".formGroup")
+        const tagParent = tagCurrent.closest(".form-group");
+        tagParent.classList.add("invalid");
+        tagCurrent.setAttribute(
+          "title",
+          this.$MISAResource.textError.textErrorRequired
+        );
+      } else {
+        // Tham chieu len thẻ cha (".formGroup")
+        const tagParent = tagCurrent.closest(".form-group");
+        tagParent.classList.remove("invalid");
+        tagCurrent.setAttribute("title", "");
+      }
+    },
+    /**
+     * Params:
+     * Des: Thực hiện nhấn combobox
+     * Author: DDKhang
+     * CreateAt: 3/5/2023
+     * ModifierAt: 3/5/2023
+     */
     handlePressCombobox() {
       showCombobox();
     },
+
+    /**
+     * Params:
+     * Des: Xử lí việc tab trên mỗi thẻ input
+     * Author: DDKhang
+     * CreateAt: 3/5/2023
+     * ModifierAt: 3/5/2023
+     */
+    // handleTab(index, event) {
+    //   if (index === this.inputs.length - 1) {
+    //     // nếu đang ở thẻ input cuối cùng thì quay lại thẻ input đầu tiên
+    //     event.preventDefault();
+    //     this.inputs[0].focus();
+    //   } else {
+    //     // nếu đang ở thẻ input bất kỳ thì chuyển sang thẻ input tiếp theo
+    //     this.currentIndex = index + 1;
+    //     this.inputs[this.currentIndex].focus();
+    //   }
+    // },
+
+    /**
+     * Params:
+     *  + departmentId:(string) - Id của department
+     * Des: Thực hiện xử lí khi trên comboboxDepartment
+     * Author: DDKhang
+     * CreateAt: 3/5/2023
+     * ModifierAt: 3/5/2023
+     */
+    async handleComboboxDepartment(departmentId) {
+      this.employee.DepartmentId = departmentId;
+    },
   },
   computed: {
+    /**
+     * Params:
+     * Des:  Tính toán thêm hoặc cập nhật
+     * Author: DDKhang
+     * CreateAt: 3/5/2023
+     * ModifierAt: 3/5/2023
+     */
     isAdd: function () {
       if (this.employeeId) {
         return false; // Thực hiện Edit
@@ -174,8 +366,8 @@ export default {
             <div class="info-employee-header-title">
               {{
                 this.isAdd
-                  ? "Thêm thông tin nhân viên"
-                  : "Sửa thông tin nhân viên"
+                  ? this.$MISAResource.textCRUD.textAddEmployee
+                  : this.$MISAResource.textCRUD.textEditEmployee
               }}
             </div>
             <div class="icon-help-close" @click="handleCloseFormEmployeeInfo">
@@ -195,18 +387,30 @@ export default {
                         <label for="" title="Bắt buộc nhập">*</label>
                       </span>
                     </label>
-                    <input
+                    <!-- <input
                       ref="textCodeEmployee"
                       id="textfield_codeEmployee"
                       class="textfield__input input-hover input-focus firstElement"
                       type="text"
                       field-label="Mã nhân viên"
                       name="employeeCode"
-                      v-model="employee.EmployeeCode"
-                      placeholder="Placeholder"
-                      tabindex="1"
-                      required=""
-                    />
+                      v-model="this.employee.EmployeeCode"
+                      @blur="validateInput"
+                      placeholder="Mã nhân viên"
+                      :tabindex="this.$TabIndex.formEmployeeInfo.codeEmployee"
+                      required
+                    /> -->
+                    <MISAInput
+                      ref="textCodeEmployee"
+                      id="textfield_codeEmployee"
+                      class="firstElement"
+                      field-label="Mã nhân viên"
+                      name="employeeCode"
+                      v-model="this.employee.EmployeeCode"
+                      :tabindex="this.$TabIndex.formEmployeeInfo.codeEmployee"
+                      required="true"
+                      @blur="validateInput"
+                    ></MISAInput>
                     <!-- <input
                       id="textfield_codeEmployee"
                       class="textfield__input input-hover input-focus firstElement"
@@ -231,18 +435,13 @@ export default {
                       class="textfield__input input-hover input-focus min-width-input"
                       type="text"
                       field-label="Tên nhân viên"
-                      name="fullname"
-                      v-model="employee.FullName"
-                      v-on:blur="
-                        validateInput(
-                          employee.FullName,
-                          'textfield_EmployeeName',
-                          'text'
-                        )
-                      "
+                      name="FullName"
+                      v-model="this.employee.FullName"
+                      @blur="validateInput"
                       placeholder="Nguyễn Ánh Bằng"
-                      tabindex="2"
-                      required=""
+                      :tabindex="this.$TabIndex.formEmployeeInfo.employeeName"
+                      required
+                      ref="inputFullName"
                     />
                     <!-- <input
                       id="textfield_EmployeeName"
@@ -271,7 +470,10 @@ export default {
                   class="info-employee-form-one-unit form-group"
                 >
                   <!-- Combobox -->
-                  <label class="textfield__label">Đơn vị</label>
+                  <label class="textfield__label"
+                    >Đơn vị
+                    <span class="icon-require">*</span>
+                  </label>
                   <div class="dropdown width-full" @click="handlePressCombobox">
                     <div class="combobox-input">
                       <input
@@ -279,6 +481,8 @@ export default {
                         placeholder="Phòng nhân sự"
                         :tabindex="this.$TabIndex.formEmployeeInfo.comboboxUnit"
                         name="unit"
+                        v-model="this.department.DepartmentName"
+                        ref="comboboxDepartment"
                       />
                       <div class="combobox-input__icon border-left-none">
                         <div class="icon-combobox--arrow"></div>
@@ -288,10 +492,15 @@ export default {
                       id="contentUnitCombobox"
                       class="options combobox-options--below"
                     >
-                      <li class="option">10</li>
-                      <li class="option">25</li>
-                      <li class="option">30</li>
-                      <li class="option">50</li>
+                      <li
+                        class="option"
+                        v-for="department in this.departments"
+                        @click="
+                          this.handleComboboxDepartment(department.DepartmentId)
+                        "
+                      >
+                        {{ department.DepartmentName }}
+                      </li>
                     </ul>
                   </div>
                   <small class="form-message--error"></small>
@@ -304,8 +513,9 @@ export default {
                     class="textfield__input width-full input-hover input-focus"
                     type="text"
                     name="title"
-                    placeholder="Lễ tân chính"
+                    placeholder=""
                     :tabindex="this.$TabIndex.formEmployeeInfo.title"
+                    ref="input4"
                   />
                   <small class="form-message--error"></small>
                 </div>
@@ -319,7 +529,9 @@ export default {
                       type="date"
                       id="textfield__dateOfBirth"
                       name="dateOfBirth"
+                      v-model="this.employee.DateOfBirth"
                       :tabindex="this.$TabIndex.formEmployeeInfo.dateOfBirth"
+                      ref="input5"
                     />
                     <!-- <small class="form-message--error"></small> -->
                   </div>
@@ -342,8 +554,10 @@ export default {
                         <input
                           type="radio"
                           name="genre"
-                          value="male"
-                          v-model="employee.GenderName"
+                          value="0"
+                          checked
+                          v-model="this.employee.Gender"
+                          ref="input6"
                         />
                         <p>Nam</p>
                         <span
@@ -356,8 +570,9 @@ export default {
                         <input
                           type="radio"
                           name="genre"
-                          value="female"
-                          v-model="employee.GenderName"
+                          value="1"
+                          v-model="this.employee.Gender"
+                          ref="input7"
                         />
                         <p>Nữ</p>
                         <span
@@ -372,10 +587,11 @@ export default {
                         <input
                           type="radio"
                           name="genre"
-                          value="other"
-                          v-model="employee.GenderName"
+                          value="Khác"
+                          v-model="this.employee.Gender"
+                          ref="input8"
                         />
-                        <p>Other</p>
+                        <p>Khác</p>
                         <span
                           class="checkmark"
                           :tabindex="
@@ -399,11 +615,12 @@ export default {
                     >
                     <input
                       id="textfield__peopleId"
-                      class="textfield__input min-width-300 input-hover input-focus"
+                      class="textfield__input input-hover input-focus min-width-300"
                       type="text"
                       name="peopleId"
                       placeholder="001202009382"
                       :tabindex="this.$TabIndex.formEmployeeInfo.identification"
+                      ref="input9"
                     />
                     <small class="form-message--error"></small>
                   </div>
@@ -426,8 +643,8 @@ export default {
                       type="date"
                       id="textfield__dateOfBirth"
                       name="dateOfBirth"
-                      tabindex="10"
                       :tabindex="this.$TabIndex.formEmployeeInfo.datetime"
+                      ref="input10"
                     />
                     <!-- <small class="form-message--error"></small> -->
                   </div>
@@ -440,8 +657,9 @@ export default {
                     class="textfield__input width-full input-hover input-focus"
                     type="text"
                     name="issuedBy"
-                    placeholder="Hải Phòng"
+                    placeholder=""
                     :tabindex="this.$TabIndex.formEmployeeInfo.issuedBy"
+                    ref="input11"
                   />
                   <small class="form-message--error"></small>
                 </div>
@@ -455,8 +673,9 @@ export default {
                 class="textfield__input width-full input-hover input-focus"
                 type="text"
                 name="address"
-                placeholder="146 Phạm Văn Chiêu"
+                placeholder=""
                 :tabindex="this.$TabIndex.formEmployeeInfo.address"
+                ref="input12"
               />
               <small class="form-message--error"></small>
             </div>
@@ -474,8 +693,9 @@ export default {
                     class="textfield__input input-hover input-focus min-width-input"
                     type="text"
                     name="mobilePhone"
-                    placeholder="0963579744"
+                    placeholder=""
                     :tabindex="this.$TabIndex.formEmployeeInfo.mobilePhone"
+                    ref="input13"
                   />
                   <small class="form-message--error"></small>
                 </div>
@@ -490,8 +710,9 @@ export default {
                     class="textfield__input input-hover input-focus min-width-input"
                     type="text"
                     name="landlinePhone"
-                    placeholder="(764) 749-6478"
+                    placeholder=""
                     :tabindex="this.$TabIndex.formEmployeeInfo.landlinePhone"
+                    ref="input14"
                   />
                   <small class="form-message--error"></small>
                 </div>
@@ -502,9 +723,10 @@ export default {
                     class="textfield__input input-hover input-focus min-width-input"
                     type="text"
                     name="email"
+                    v-model="this.employee.Email"
                     placeholder="procuon856@example.com"
-                    tabindex="15"
                     :tabindex="this.$TabIndex.formEmployeeInfo.email"
+                    ref="input15"
                   />
                   <small class="form-message--error"></small>
                 </div>
@@ -518,10 +740,10 @@ export default {
                     class="textfield__input input-hover input-focus min-width-input"
                     type="text"
                     name="bankAccount"
-                    placeholder="944147"
+                    placeholder=""
                     :tabindex="this.$TabIndex.formEmployeeInfo.bank"
+                    ref="input16"
                   />
-
                   <small class="form-message--error"></small>
                 </div>
                 <div
@@ -533,9 +755,9 @@ export default {
                     class="textfield__input input-hover input-focus min-width-input"
                     type="text"
                     name="bankName"
-                    placeholder="Ngân hàng Vietcombank"
-                    tabindex="17"
+                    placeholder=""
                     :tabindex="this.$TabIndex.formEmployeeInfo.bankName"
+                    ref="input17"
                   />
                   <small class="form-message--error"></small>
                 </div>
@@ -546,8 +768,9 @@ export default {
                     class="textfield__input input-hover input-focus min-width-input"
                     type="text"
                     name="branch"
-                    placeholder="Chi nhánh 6"
+                    placeholder=""
                     :tabindex="this.$TabIndex.formEmployeeInfo.branch"
+                    ref="input18"
                   />
                   <small class="form-message--error"></small>
                 </div>
@@ -557,28 +780,31 @@ export default {
         </div>
 
         <div class="info-employee-footer">
-          <div
+          <button
             class="info-employee-footer-btnCancel"
             @click="handleCloseFormEmployeeInfo"
             :tabindex="this.$TabIndex.formEmployeeInfo.btnCancel"
+            ref="input21"
           >
             Hủy
-          </div>
+          </button>
           <div class="info-employee-footer-btn">
-            <div
+            <button
               class="info-employee-footer-btn-keep"
               @click="handleBtnSave"
               :tabindex="this.$TabIndex.formEmployeeInfo.btnSave"
+              ref="input19"
             >
               Cất
-            </div>
-            <div
+            </button>
+            <button
               id="btnSaveAndAdd"
               class="info-employee-footer-btnKeepAdd btn-hover btn-pressed"
               :tabindex="this.$TabIndex.formEmployeeInfo.saveAndAdd"
+              ref="input20"
             >
               Cất và Thêm
-            </div>
+            </button>
           </div>
         </div>
       </form>

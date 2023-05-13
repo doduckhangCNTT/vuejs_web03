@@ -22,12 +22,14 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #0000003a;
+  background-color: #0000002a;
   z-index: 2;
 }
 
 .progress-item progress {
   width: 280px;
-  height: 50px;
+  height: 10px;
+  border-radius: 4px;
+  background-color: #5dc748;
 }
 </style>

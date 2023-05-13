@@ -1,0 +1,97 @@
+.dialog-1 {
+  /* display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh; */
+}
+
+.dialog-question {
+  display: inline-block;
+  border-radius: var(--border-radius-primary);
+  box-shadow: 0px 5px 8px rgba(0, 0, 0, 0.1);
+  padding: 24px;
+  background-color: #fff;
+  /* Xử lí dialog giữa màn hình */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.dialog-question__header {
+  display: flex;
+  justify-content: space-between;
+}
+
+.dialog-question__header-title {
+  min-width: 200px;
+  font-size: 20px;
+  font-weight: 700;
+  max-width: 400px;
+}
+
+.dialog-question__header-close {
+  font-size: 12px;
+}
+
+.dialog-question__des {
+  margin-top: 24px;
+  font-size: 14px;
+  line-height: 18px;
+  color: #1f1f1f;
+  max-width: 400px;
+}
+
+.dialog-question__button {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.dialog-question__button-cancel {
+  border: none;
+  min-width: 80px;
+  background-color: #fff;
+  padding: 8px 16px;
+  border: 1px solid;
+  border-radius: var(--border-radius-primary);
+  border-color: var(--border-color-primary);
+}
+
+.dialog-question__button-cancel:hover {
+  background-color: #f6f6f6;
+  cursor: pointer;
+}
+.dialog-question__button-cancel:focus {
+  background-color: #ebebeb;
+}
+
+.dialog-question__button-ok {
+  border: none;
+  min-width: 80px;
+  margin-left: 8px;
+  background-color: var(--background-color-primary);
+  border-radius: var(--border-radius-primary);
+  padding: 8px 19px;
+  color: var(--color-primary);
+  font-weight: var(--font-weight-primary);
+  height: 36px;
+}
+
+/* === Dialog-3 === */
+.min-width-dialog {
+  width: 400px !important;
+}
+
+.min-height-dialog-question {
+  height: 191px !important;
+}
+
+.btn-color-delete {
+  background-color: #e81e1e;
+}
+
+.dialog-question__button-delete:hover {
+  opacity: 0.9;
+  cursor: pointer;
+}

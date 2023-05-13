@@ -6,6 +6,7 @@
 @import url(./components/dialog.css);
 @import url(./components/datetime.css);
 @import url(./components/radio.css);
+@import url(./components/dialog-question.css);
 
 body {
   font-family: MISA Font;

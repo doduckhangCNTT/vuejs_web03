@@ -25,7 +25,7 @@ const router = createRouter({
           name: "EmployeeCreateRouter",
         },
       ],
-      sensitive: true,
+      // sensitive: true,
     },
     {
       path: "/customer",

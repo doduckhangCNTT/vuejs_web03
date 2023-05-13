@@ -292,6 +292,8 @@
   height: 36px;
   display: flex;
   align-items: center;
+  outline: none;
+  border: none;
 }
 
 .btn-hover:hover {

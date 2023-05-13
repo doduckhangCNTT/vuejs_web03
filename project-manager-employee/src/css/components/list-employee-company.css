@@ -311,7 +311,8 @@
 }
 .main__table-info table td.sticky-column1 {
   position: sticky;
-  left: 0;
+  /* left: 0; */
+  left: -3px;
   /* z-index: 10; */
   background-color: #fff;
 }
@@ -328,15 +329,31 @@
   background-color: #fff;
 }
 
+.sticky-column-thead1 {
+  position: sticky;
+  /* left: 0; */
+  left: -3px;
+}
+.sticky-column-thead2 {
+  position: sticky;
+  left: 50px;
+}
+.sticky-column-thead3 {
+  position: sticky;
+  left: 150px;
+}
+
 #table-employee thead {
   position: sticky;
   top: 0;
-  z-index: 1;
+  z-index: 2;
 }
 
 #table-employee {
   border-collapse: separate;
   border-spacing: 0;
+  /* Phải thêm cả "overflow: scroll;" cho cả thẻ cha(.main__table-info) và thẻ con (#table-employee) */
+  overflow: scroll;
 }
 /* 
 #table-employee th,
@@ -347,6 +364,7 @@ td {
 #table-employee thead .sticky-column1 {
   position: sticky;
   left: 0;
+  /* left: -3px; */
   z-index: 2;
   background-color: #f2f2f2;
   width: 50px;
@@ -397,6 +415,9 @@ td {
 .main__table-info tbody tr {
   position: relative;
 }
+.main__table-info tbody tr:hover td {
+  background-color: #f2f2f2;
+}
 
 .main__table-info table {
   border-collapse: collapse;
@@ -410,7 +431,7 @@ td {
 .main__table-info th,
 td {
   border-bottom: 1px solid #e0e0e0;
-  padding: 7px 16px;
+  padding: 10px 18px 7px 21px;
   font-size: 14px;
   height: 48px;
 }
@@ -513,7 +534,7 @@ td {
 .main__footer-quality-record {
   display: flex;
   align-items: center;
-  width: 70px;
+  width: 75px;
   font-size: 14px;
   margin: 0 16px;
 }

@@ -7,7 +7,10 @@ export default {
   name: "EmployeeList",
   components: { TheLoading },
   created() {
-    this.loadData();
+    // this.loadData();
+    // Thực hiện lấy dữ liệu tương ứng với url khi mà refresh trang
+    this.fetchDataByPageAndLimit();
+    // Lắng nghe sự kiện được truyền đến
     this.$msemitter.on("refresh", this.reloadData);
     this.$msemitter.on("listEmployeeSearch", this.handleShowListEmployeeSearch);
   },
@@ -29,7 +32,68 @@ export default {
       isCheckedAll: false,
     };
   },
+  watch: {
+    "$route.query": {
+      async handler() {
+        this.fetchDataByPageAndLimit();
+      },
+      immediate: true, // Kích hoạt watcher ngay khi component được tạo ra
+      deep: true, // Theo dõi sâu đối với các thuộc tính con của $route.query
+    },
+  },
   methods: {
+    /**
+     * @param(): null
+     * Des: Thực hiện lấy tham số {page, limit} trên url mỗi khi có sự thay đổi => lấy dữ liệu tương ứng
+     * Author: DDKhang
+     * CreateAt: 30/4/2023
+     * ModifierAt: 30/4/2023
+     */
+    async fetchDataByPageAndLimit() {
+      const { page, limit } = this.$route.query;
+      let res;
+      this.loading = true;
+      // progress bar
+      const intervalId = setInterval(() => {
+        if (this.loadingProgress < 100) {
+          this.loadingProgress += 8;
+        } else {
+          clearInterval(intervalId);
+          this.loading = false;
+        }
+      }, 20);
+      if (page && limit) {
+        try {
+          res = await getData(
+            `https://cukcuk.manhnv.net/api/v1/Employees/filter?pageSize=${limit}&pageNumber=${page}`
+          );
+          this.loadingProgress = 100;
+          this.employees = res.data.Data;
+          this.loading = false;
+        } catch (error) {
+          console.log("Error: ", error);
+          this.isLoading = false;
+        }
+      } else {
+        // Thực hiện lấy dữ liệu khi không có query url nào (https//:localhost:3000/employee)
+        const page = 1;
+        const limit = 20;
+        try {
+          res = await getData(
+            `https://cukcuk.manhnv.net/api/v1/Employees/filter?pageSize=${limit}&pageNumber=${page}`
+          );
+          this.loadingProgress = 100;
+          this.employees = res.data.Data;
+          this.loading = false;
+        } catch (error) {
+          console.log(error);
+          this.isLoading = false;
+        }
+      }
+
+      // Phát thông tin của các bản record
+      this.$msemitter.emit("recordsResInfo", res.data);
+    },
     /**
      * Params: null
      * Des: Xử lí tải lại dữ liệu cho table
@@ -38,11 +102,12 @@ export default {
      * ModifierAt: 30/4/2023
      */
     reloadData() {
-      this.loadData();
+      // this.loadData();
+      this.fetchDataByPageAndLimit();
     },
     /**
      * Params: null
-     * Des: Xử lí tải dữ liệu employee từ server
+     * Des: Xử lí tải dữ liệu employee từ server ("Không sử dụng nữa, thay bằng fetchDataByPageAndLimit()")
      * Author: DDKhang
      * CreateAt: 30/4/2023
      * ModifierAt: 30/4/2023
@@ -107,6 +172,14 @@ export default {
       this.showOption[index] = true;
     },
 
+    /**
+     * Params:
+     *  + index: Chỉ số của thẻ tr khi di chuột vào, di chuột ra
+     * Des: Thực hiện cập nhật trạng thái hiển thị "button option" trên thẻ tr
+     * Author: DDKhang
+     * CreateAt: 3/5/2023
+     * ModifierAt: 3/5/2023
+     */
     handleMouseOutEmployeeItem(index) {
       this.showOption[index] = false;
     },
@@ -152,6 +225,14 @@ export default {
       }
     },
 
+    /**
+     * Params:
+     *  + employee: Thông tin của employees khi mà tìm kiếm
+     * Des: Thực hiện lưu trữ thông tin của employees đã tìm kiếm đó và hiển thị trên bảng
+     * Author: DDKhang
+     * CreateAt: 3/5/2023
+     * ModifierAt: 3/5/2023
+     */
     handleShowListEmployeeSearch(employees) {
       this.employees = employees;
     },
@@ -165,7 +246,6 @@ export default {
      */
     handleCheckAll() {
       this.isCheckedAll = !this.isCheckedAll;
-
       if (this.isCheckedAll) {
         // trạng thái checkAll
         let listCheck = [];
@@ -196,13 +276,23 @@ export default {
       <thead>
         <tr>
           <th
-            class="table-header__checkbox sticky-column1"
-            style="min-width: 50px"
+            class="table-header__checkbox sticky-column-thead1"
+            style="min-width: 50px; background-color: #f2f2f2; z-index: 2"
           >
             <input type="checkbox" @click="handleCheckAll" />
           </th>
-          <th class="sticky-column2" style="min-width: 100px">MÃ NHÂN VIÊN</th>
-          <th class="sticky-column3" style="min-width: 150px">TÊN NHÂN VIÊN</th>
+          <th
+            class="sticky-column-thead2"
+            style="min-width: 100px; background-color: #f2f2f2; z-index: 2"
+          >
+            MÃ NHÂN VIÊN
+          </th>
+          <th
+            class="sticky-column-thead3"
+            style="min-width: 150px; background-color: #f2f2f2; z-index: 2"
+          >
+            TÊN NHÂN VIÊN
+          </th>
           <th class="table-header__gender" style="min-width: 100px">
             GIỚI TÍNH
           </th>
@@ -218,7 +308,9 @@ export default {
           </th>
           <th>SỐ TÀI KHOẢN</th>
           <th>TÊN NGÂN HÀNG</th>
-          <th>CHI NHÁNH TÀI KHOẢN NGÂN HÀNG</th>
+          <th style="min-width: 272px; width: 300px">
+            CHI NHÁNH TÀI KHOẢN NGÂN HÀNG
+          </th>
           <!--<th colspan="2">CHỨC NĂNG</th> -->
         </tr>
       </thead>
@@ -246,7 +338,7 @@ export default {
           <td>123456789</td>
           <td></td>
           <td>MISA</td>
-          <td style="text-align: right">0123456789</td>
+          <td>0123456789</td>
           <td>MBBank</td>
           <td style="width: 150px">Hà Nội</td>
           <td

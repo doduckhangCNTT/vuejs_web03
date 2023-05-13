@@ -25,12 +25,12 @@ export default {
 
       <router-link to="/employee" class="navbar__item-overview">
         <div class="navbar__item-price-icon"></div>
-        <div class="navbar__item-title">Employee</div>
+        <div class="navbar__item-title">Nhân viên</div>
       </router-link>
 
       <router-link to="/customer" class="navbar__item-overview">
         <div class="navbar__item-shopping-icon"></div>
-        <div class="navbar__item-title">Customer</div>
+        <div class="navbar__item-title">Khách hàng</div>
       </router-link>
       <div class="navbar__item-overview">
         <div class="navbar__item-overview-icon"></div>

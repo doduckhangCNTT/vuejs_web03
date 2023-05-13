@@ -1,15 +1,17 @@
 <script>
 import EmployeeForm from "./EmployeeForm.vue";
 import EmployeeList from "./EmployeeList.vue";
-import { showCombobox } from "../../functions/Combobox";
+import { ShowQuestion } from "../../functions/CatchError";
+import EmployeeHomeFooter from "./EmployeeHomeFooter.vue";
 
 export default {
   name: "EmployeeHome",
-  components: { EmployeeList, EmployeeForm },
+  components: { EmployeeList, EmployeeForm, EmployeeHomeFooter },
   data() {
     return {
       checkboxListEmployeeId: [],
       textSearch: "",
+      isAgreeDeleteEmployee: false,
     };
   },
   created() {
@@ -17,8 +19,37 @@ export default {
       "handleDeleteEmployeeById",
       this.handleDeleteEmployeeById
     );
+    // Nhận tín hiệu đóng dialog question xóa employee
+    this.$msemitter.on("closeDialogQuestion", this.statusDeleteEmployee);
   },
   methods: {
+    /**
+     * Params:
+     *  + status: trạng thái "Có" or "Không" xóa các employee được chọn
+     * Des: Xử lí xóa các các employee được chọn
+     * Author: DDKhang
+     * CreateAt: 8/5/2023
+     * ModifierAt: 8/5/2023
+     */
+    statusDeleteEmployee(status) {
+      if (status) {
+        // Thực hiện xóa những employee đã chọn, khi bấm "Có" trên dialog
+        this.checkboxListEmployeeId.forEach(async (id) => {
+          await this.$axios
+            .delete(`https://cukcuk.manhnv.net/api/v1/Employees/${id}`)
+            .then((res) => {
+              console.log("Data Delete: ", res);
+            })
+            .catch((err) => {
+              console.log(err);
+            });
+        });
+        // Cập nhật lại danh sách employee sẽ xóa => ẩn nút "Delete"
+        this.checkboxListEmployeeId = [];
+      }
+      this.isAgreeDeleteEmployee = status;
+    },
+
     /**
      * Params: null
      * Des: Xử lí bật form info employee
@@ -29,6 +60,7 @@ export default {
     handleClickShowFormEmployee() {
       this.$router.push("/employee/create");
     },
+
     /**
      * Params: null
      * Des:  Thực hiện refresh data
@@ -37,12 +69,19 @@ export default {
      * ModifierAt: 30/4/2023
      */
     handleRefreshBtn() {
-      this.$msemitter.emit("refresh");
+      this.$msemitter.emit("refresh"); // EmployeeList
+      this.textSearch = "";
     },
 
+    /**
+     * Params:
+     *  + checkboxEmployeesId: danh sách Id của những employee được check
+     * Des:  Thực hiện Lưu trữ danh sách Id của employee
+     * Author: DDKhang
+     * CreateAt: 30/4/2023
+     * ModifierAt: 30/4/2023
+     */
     handleDeleteEmployeeById(checkboxEmployeesId) {
-      console.log("Hello");
-      console.log("Checkbox List: ", checkboxEmployeesId);
       this.checkboxListEmployeeId = [...checkboxEmployeesId];
     },
 
@@ -54,29 +93,7 @@ export default {
      * ModifierAt: 30/4/2023
      */
     async handleDeleteEmployees() {
-      if (window.confirm("Bạn có muốn xóa các nhân viên đó?")) {
-        this.checkboxListEmployeeId.forEach(async (id) => {
-          await this.$axios
-            .delete(`https://cukcuk.manhnv.net/api/v1/Employees/${id}`)
-            .then((res) => {
-              console.log("Data Delete: ", res);
-            })
-            .catch((err) => {
-              console.log(err);
-            });
-        });
-      }
-    },
-
-    /**
-     * Params: null
-     * Des: Xử lí hiển thị combobox trên trang chủ
-     * Author: DDKhang
-     * CreateAt: 30/4/2023
-     * ModifierAt: 30/4/2023
-     */
-    handlePressCombobox() {
-      showCombobox();
+      ShowQuestion(this.$MISAResource.Delete.deleteInfo);
     },
 
     /**
@@ -184,43 +201,8 @@ export default {
   </div>
 
   <!-- Footer - Start -->
-  <div class="main__footer">
-    <div class="main__footer-total-records">Tổng số: 1035 bản ghi</div>
-    <div class="main__footer-paging">
-      <div class="main__footer-paging-total-record-on-page">
-        <p class="number-records-text">Số bản ghi/trang:</p>
-        <!-- Combobox -->
-        <div class="dropdown width-76" @click="handlePressCombobox">
-          <div class="combobox-input">
-            <input type="text" placeholder="20" />
-            <div class="combobox-input__icon border-left-none">
-              <div class="icon-combobox--arrow"></div>
-            </div>
-          </div>
-          <ul class="options combobox-options--above">
-            <li class="option">10</li>
-            <li class="option">25</li>
-            <li class="option">30</li>
-            <li class="option">50</li>
-          </ul>
-        </div>
-        <span class="main__footer-quality-record">1-4 bản ghi </span>
-      </div>
-      <div class="main__footer-paging-number">
-        <span class="main__footer-paging-previous"></span>
-        <!-- <ul class="main__footer-paging-number-item">
-                  <li>1</li>
-                  <li>2</li>
-                  <li>3</li>
-                  <li>...</li>
-                  <li>8</li>
-                  <li>9</li>
-                </ul> -->
-        <span class="main__footer-paging-next"></span>
-      </div>
-    </div>
-  </div>
-  <!-- Footer - Start -->
+  <EmployeeHomeFooter />
+  <!-- Footer - End -->
 </template>
 
 <style lang="scss" scoped></style>

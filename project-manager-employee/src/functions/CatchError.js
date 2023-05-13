@@ -31,3 +31,14 @@ export function ShowValidate(msg) {
   errors.push(msg);
   emitter.emit("showNotice", errors); // phát đến App.vue thực hiện thông báo lỗi
 }
+
+export async function ShowQuestion(msg) {
+  let errors = [];
+  errors.push(msg);
+  await emitter.emit("showQuestion", errors); // phát đến App.vue thực hiện thông báo lỗi
+}
+
+// export function statusDeleteEmployee(status) {
+//   console.log("Status 1: ", status);
+//   return status;
+// }

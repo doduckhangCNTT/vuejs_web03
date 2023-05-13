@@ -60,3 +60,51 @@
   border: 0;
   float: right;
 }
+
+.dialog__button-ok {
+  border: none;
+  min-width: 80px;
+  margin-left: 8px;
+  background-color: var(--background-color-primary);
+  border-radius: var(--border-radius-primary);
+  padding: 8px 19px;
+  color: var(--color-primary);
+  font-weight: var(--font-weight-primary);
+  height: 36px;
+}
+
+/* === Dialog-3 === */
+.dialog__button-cancel {
+  border: none;
+  min-width: 80px;
+  background-color: #fff;
+  padding: 8px 16px;
+  border: 1px solid;
+  border-radius: var(--border-radius-primary);
+  border-color: var(--border-color-primary);
+}
+
+.dialog__button-cancel:hover {
+  background-color: #f6f6f6;
+  cursor: pointer;
+}
+.dialog__button-cancel:focus {
+  background-color: #ebebeb;
+}
+
+.min-width-dialog {
+  width: 400px !important;
+}
+
+.min-height-dialog {
+  height: 191px !important;
+}
+
+.btn-color-delete {
+  background-color: #e81e1e;
+}
+
+.dialog__button-delete:hover {
+  opacity: 0.9;
+  cursor: pointer;
+}

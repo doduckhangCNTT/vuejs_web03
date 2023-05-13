@@ -25,7 +25,7 @@ export function checkBlank(data) {
 
 export function checkDuplicateEmployeeCode(employees, employeeCode) {
   const employee = employees.find(
-    (employee) => employee.EmployeeCode === employeeCode
+    (employee) => employee.EmployeeCode === employeeCode?.trim()
   );
   if (employee)
     return {
