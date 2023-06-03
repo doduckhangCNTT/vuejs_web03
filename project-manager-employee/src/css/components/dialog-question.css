@@ -30,8 +30,16 @@
   max-width: 400px;
 }
 
+.dialog-question__header-close i {
+  font-size: 24px;
+  cursor: pointer;
+}
 .dialog-question__header-close {
-  font-size: 12px;
+  background: url("../../assets/ResourceTable/img/Sprites.64af8f61.svg")
+    no-repeat -147px -147px;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
 }
 
 .dialog-question__des {

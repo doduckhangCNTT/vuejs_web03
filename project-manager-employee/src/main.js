@@ -7,6 +7,10 @@ import TabIndex from "./js/TabIndexEnum";
 import emitter from "tiny-emitter/instance";
 import MISAEnum from "./js/MISAEnum";
 import MISAResource from "./js/MISAResource";
+import DeleteType from "./js/DeleteTypeEnum";
+import EntityEnum from "./config/EntityEnum";
+import ShortCutKey from "./js/ShortKeyResource";
+import MagicNumberEnum from "./js/MagicNumberEnum";
 
 const app = createApp(App);
 app.use(router);
@@ -18,6 +22,10 @@ globalProps.$TabIndex = TabIndex;
 globalProps.$msemitter = emitter;
 globalProps.$MISAEnum = MISAEnum;
 globalProps.$MISAResource = MISAResource;
+globalProps.$ShortCutResource = ShortCutKey;
+globalProps.$MagicNumber = MagicNumberEnum;
+globalProps.$EntityEnum = EntityEnum;
+globalProps.$DeleteType = DeleteType;
 
 app.mount("#app");
 

@@ -3,7 +3,7 @@
 
 .datetime input {
   margin-top: 8px;
-  border: 1px solid var(--border-color-primary);
+  /* border: 1px solid var(--border-color-primary); */
   padding: 10px 12px 9px 12px;
   border-radius: var(--border-radius-primary);
   height: 36px;

@@ -10,7 +10,7 @@ export function convertDate(dateTime) {
   const date = new Date(dateTime);
 
   // Get values day, month, year
-  const day = date.getDay();
+  const day = date.getDate();
   const month = date.getMonth() + 1;
   const year = date.getFullYear();
 

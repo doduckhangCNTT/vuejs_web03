@@ -34,19 +34,40 @@ export default {
     };
   },
   methods: {
+    /**
+     *
+     * @param {*} errors - Thông tin lỗi
+     * - Des: Thực hiện hiển thị dialog nhận xét
+     * - Author: DDKhang (2/6/2023)
+     */
     showNotice(errors) {
       this.isShowNotice = true;
       this.errors = errors;
     },
 
+    /**
+     *
+     * @param {*} warnings - Thông tin cảnh báo
+     * - Des: Thực hiện hiển thị thông tin cảnh báo lên dialog
+     * - Author: DDKhang (2/6/2023)
+     */
     showQuestion(warnings) {
       this.isShowQuestion = true;
       this.warnings = warnings;
     },
 
+    /**
+     * - Đóng dialog nhận xét
+     * - Author: DDKhang (2/6/2023)
+     */
     closeDialogNotice() {
       this.isShowNotice = false;
     },
+
+    /**
+     * - Đóng dialog câu hỏi
+     * - Author: DDKhang (2/6/2023)
+     */
     closeDialogQuestion() {
       this.isShowQuestion = false;
     },
@@ -68,7 +89,7 @@ export default {
   ></MISADialogNotification>
 
   <MISADialogQuestion
-    v-if="isShowQuestion"
+    v-show="isShowQuestion"
     :warnings="warnings"
   ></MISADialogQuestion>
 </template>

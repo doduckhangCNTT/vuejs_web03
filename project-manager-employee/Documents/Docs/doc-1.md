@@ -19,10 +19,11 @@
         </details>
         
 ## 2.Xử lí "TabIndex"
+- Thực hiện gắn các thẻ `INPUT || BUTTON` các `ref="..."`
 - Thực hiện xử lí trong `mounted` hook khi mà toàn bộ DOM đã được render
 - Thực hiện tham chiếu đến tất cả các thẻ `INPUT || BUTTON` để có thể bắt các sự kiện trên đó
     <details>
-    <summary>Minh họa</summary>
+    <summary> -- Minh họa -- </summary>
     
     ```js
         // =================== Handel Tab - Start =======================
@@ -67,3 +68,9 @@
 - Xử lí trong (`EmployeeHomeFooter.vue`, `EmployeeList.vue`)
 - Xử lí phân trang thông quan Url bằng cách tăng giá trị `page`, `limit`
 - Để dữ liệu có thể thay đổi liên tục khi `Url` thay đổi theo `page`, `limit` thì thực hiện theo dõi `$route.query` trong `watch() {}` hook trong `EmployeeList.vue` và xử lí sự thay đổi để lấy dữ liệu tương ứng qua function `fetchDataByPageAndLimit()`
+
+## Khi thực hiện truyền giá trị cho combobox
+- Vấn đề: Khi truyền từ `EmployeeForm.vue` -> `MISACombobox.vue` thì khi hiển thị combobox trên form thì không hiển thị dữ liệu "Phòng ban" từ lấy ra bằng cách gọi api.
+- Lí do: Do việc bất đồng bộ do việc gọi dữ liệu qua api
+- Cách xử lí:
+    + Trong `MISACombobox.vue` thì trong hàm `watch` thì thực hiện theo dõi dữ `listItemValue` (chứa dữ liệu lấy từ api) thì khi dữ liệu được lấy thì cập nhật lại và hiển thị dữ liệu đó lên giao diện

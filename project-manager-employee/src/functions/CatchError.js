@@ -2,12 +2,12 @@ import MISAEnum from "../js/MISAEnum";
 import emitter from "tiny-emitter/instance";
 
 /**
- * Params:
- *  + err: thông tin lỗi
- * Des: Thực hiện hiển thị dialog lỗi
- * Author: DDKhang
- * CreateAt: 24/4/2023
- * ModifierAt: 24/4/2023
+ * - Params:
+ *    + err: thông tin lỗi
+ * - Des: Thực hiện hiển thị dialog lỗi
+ * - Author: DDKhang
+ * - CreateAt: 24/4/2023
+ * - ModifierAt: 24/4/2023
  */
 export function CatchError(err) {
   const statusCode = err.response.status;
@@ -26,12 +26,25 @@ export function CatchError(err) {
   }
 }
 
-export function ShowValidate(msg) {
+/**
+ *
+ * @param {*} message - Thông tin lỗi
+ * - Des: Thực hiện hiển thị thông tin lỗi
+ * Author: DDKhang (3/5/2023)
+ */
+export function ShowValidate(message) {
   let errors = [];
-  errors.push(msg);
+  errors.push(message);
   emitter.emit("showNotice", errors); // phát đến App.vue thực hiện thông báo lỗi
 }
 
+/**
+ * Des: Thực hiện hiển thị dialog question
+ * Author: DDKhang
+ * CreateAt: 3/5/2023
+ * ModifierAt: 3/5/2023
+ * @param {} msg Nội dụng của dialog question
+ */
 export async function ShowQuestion(msg) {
   let errors = [];
   errors.push(msg);

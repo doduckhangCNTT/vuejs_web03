@@ -13,16 +13,23 @@ function validateForm(data) {
 export function checkBlank(data) {
   if (data?.trim() === "" || !data) {
     return {
-      status: false,
+      status: true,
       msg: "Vui lòng nhập thông tin bắt buộc",
     };
   }
   return {
-    status: true,
+    status: false,
     msg: "",
   };
 }
 
+/**
+ *
+ * @param {*} employees - Danh sách các nhân viên
+ * @param {*} employeeCode - Mã nhân viên
+ * @returns {status: number, msg: string}
+ * - Des: Thực hiện kiểm tra có trùng mã nhân viên
+ */
 export function checkDuplicateEmployeeCode(employees, employeeCode) {
   const employee = employees.find(
     (employee) => employee.EmployeeCode === employeeCode?.trim()

@@ -1,29 +1,27 @@
 <script>
-import { getData } from "../../config/FetchData";
+import { filterInfoEntity, getData, getDataById } from "../../config/FetchData";
 import { convertDate } from "../../functions/ConvertDate";
 import TheLoading from "../../components/TheLoading.vue";
+import { ShowQuestion } from "../../functions/CatchError";
+import BaseUrl from "../../config/BaseUrl";
 
 export default {
   name: "EmployeeList",
   components: { TheLoading },
-  created() {
-    // this.loadData();
-    // Thực hiện lấy dữ liệu tương ứng với url khi mà refresh trang
-    this.fetchDataByPageAndLimit();
-    // Lắng nghe sự kiện được truyền đến
-    this.$msemitter.on("refresh", this.reloadData);
-    this.$msemitter.on("listEmployeeSearch", this.handleShowListEmployeeSearch);
-  },
+
   data() {
     // Cập nhật status ban đầu của các "btn option"
     const showOption = {};
+
+    // Thực hiện lưu trữ trạng thái ban đầu của các "popup btnOption"
     const isShowContentOption = {};
+    // Cập nhật trạng thái đóng "btnOption, popup" ban đầu
     this.employees?.forEach((item, index) => {
       showOption[index] = false;
       isShowContentOption[index] = false;
     });
     return {
-      employees: [],
+      employees: [], // Số bản ghi trên trang tương ứng
       showOption,
       isShowContentOption,
       loading: false,
@@ -31,6 +29,22 @@ export default {
       checkboxEmployeesId: [], // Chứa toàn bộ id employee được chọn
       isCheckedAll: false,
     };
+  },
+  async created() {
+    // this.loadData();
+    // Thực hiện lấy dữ liệu tương ứng với url khi mà refresh trang
+    await this.fetchDataByPageAndLimit();
+    // Lắng nghe sự kiện được truyền đến
+    this.$msemitter.on("refresh", this.reloadData);
+    this.$msemitter.on("listEmployeeSearch", this.handleShowListEmployeeSearch);
+  },
+  async mounted() {
+    window.addEventListener("keydown", this.handleKeyDown);
+    window.addEventListener("click", this.handleClosePopup);
+  },
+  beforeUnmount() {
+    window.removeEventListener("keydown", this.handleKeyDown);
+    window.removeEventListener("click", this.handleClosePopup);
   },
   watch: {
     "$route.query": {
@@ -42,6 +56,12 @@ export default {
     },
   },
   methods: {
+    handleClosePopup() {
+      this.employees?.forEach((_, index) => {
+        this.isShowContentOption[index] = false;
+      });
+    },
+
     /**
      * @param(): null
      * Des: Thực hiện lấy tham số {page, limit} trên url mỗi khi có sự thay đổi => lấy dữ liệu tương ứng
@@ -50,7 +70,8 @@ export default {
      * ModifierAt: 30/4/2023
      */
     async fetchDataByPageAndLimit() {
-      const { page, limit } = this.$route.query;
+      // Lấy query trên url
+      let { page, limit } = this.$route.query;
       let res;
       this.loading = true;
       // progress bar
@@ -63,15 +84,54 @@ export default {
         }
       }, 20);
       if (page && limit) {
+        // Thực hiện kiểm tra khi chọn số lượng bản ghi, mà lấy giá trị page của trang trước đó -> lấy ra số bản ghi rỗng
+        const response = await getData(`${BaseUrl}/Employees/filter`);
+        // 1. Thực hiện tính toán tổng số trang ứng với limit hiện tại
+        const totalRecords = response.data.TotalRecord;
+        const totalPage = Math.ceil(totalRecords / limit);
+        // 2. So sánh page trên url so với giá trị page (ứng với limit mới)
+        if (page > totalPage) {
+          page = totalPage;
+          this.$router.push(`/employee?page=${page}&limit=${limit}`);
+        }
         try {
           res = await getData(
-            `https://cukcuk.manhnv.net/api/v1/Employees/filter?pageSize=${limit}&pageNumber=${page}`
+            `${BaseUrl}/Employees/filter?pageSize=${limit}&pageNumber=${page}`
           );
+          // const employeeFilter = {
+          //   limit,
+          //   page,
+          // };
+          // res = await filterInfoEntity(
+          //   this.$EntityName.Employees,
+          //   employeeFilter
+          // );
+          const employeesArray = res.data.Data;
           this.loadingProgress = 100;
-          this.employees = res.data.Data;
+          // this.employees = res.data.Data;
+
+          const result = Promise.all(
+            employeesArray.map(async (employee) => {
+              if (employee.BankId) {
+                const res = await this.fetchBankInfo(employee.BankId);
+                const bankInfo = res.data;
+                return {
+                  ...employee,
+                  bankInfo,
+                };
+              } else {
+                return {
+                  ...employee,
+                  bankInfo: {},
+                };
+              }
+            })
+          );
+          const resolvedResult = await result;
+          this.employees = resolvedResult;
+
           this.loading = false;
         } catch (error) {
-          console.log("Error: ", error);
           this.isLoading = false;
         }
       } else {
@@ -79,11 +139,40 @@ export default {
         const page = 1;
         const limit = 20;
         try {
+          // const employeeFilter = {
+          //   limit,
+          //   page,
+          // };
+          // res = await filterInfoEntity(
+          //   this.$EntityEnum.Employees,
+          //   employeeFilter
+          // );
           res = await getData(
-            `https://cukcuk.manhnv.net/api/v1/Employees/filter?pageSize=${limit}&pageNumber=${page}`
+            `${BaseUrl}/Employees/filter?pageSize=${limit}&pageNumber=${page}`
           );
           this.loadingProgress = 100;
-          this.employees = res.data.Data;
+          // this.employees = res.data.Data;
+
+          const employeesArray = res.data.Data;
+          const result = Promise.all(
+            employeesArray.map(async (employee) => {
+              if (employee.BankId) {
+                const res = await this.fetchBankInfo(employee.BankId);
+                const bankInfo = res.data;
+                return {
+                  ...employee,
+                  bankInfo,
+                };
+              } else {
+                return {
+                  ...employee,
+                  bankInfo: {},
+                };
+              }
+            })
+          );
+          const resolvedResult = await result;
+          this.employees = resolvedResult;
           this.loading = false;
         } catch (error) {
           console.log(error);
@@ -91,9 +180,15 @@ export default {
         }
       }
 
-      // Phát thông tin của các bản record
+      // Phát thông tin của các bản record -> EmployeeHomeFooter.vue
       this.$msemitter.emit("recordsResInfo", res.data);
     },
+
+    async fetchBankInfo(bankId) {
+      const res = await getDataById(this.$EntityEnum.Banks, bankId);
+      return res;
+    },
+
     /**
      * Params: null
      * Des: Xử lí tải lại dữ liệu cho table
@@ -123,7 +218,7 @@ export default {
             this.loading = false;
           }
         }, 20);
-        const res = await getData("https://cukcuk.manhnv.net/api/v1/Employees");
+        const res = await getData(`${BaseUrl}/Employees`);
         // const res = await getData("https://jsonplaceholder.typicode.com/users");
         this.loadingProgress = 100;
         this.employees = res.data;
@@ -218,6 +313,7 @@ export default {
       }
       // Thông báo khi có yêu cầu muốn xóa employee, chuyển danh sách chứa employeeId được checked
       if (this.checkboxEmployeesId.length >= 0) {
+        // Phát sự kiên đến "EmployeeHome.vue" thực hiện truyền danh sách employeeId cần xóa
         this.$msemitter.emit(
           "handleDeleteEmployeeById",
           this.checkboxEmployeesId
@@ -264,6 +360,24 @@ export default {
         );
       }
     },
+
+    /**
+     * Params: null
+     * Des: Thực hiện xóa nhân viên theo mã nhân viên
+     * Author: DDKhang
+     * CreateAt: 3/5/2023
+     * ModifierAt: 3/5/2023
+     * @param {*} employeeId - Mã nhân viên
+     */
+    handleDeleteEmployee(employeeId) {
+      ShowQuestion(this.$MISAResource.Delete.deleteOneInfo);
+      this.$msemitter.emit("deleteType", this.$DeleteType.deleteOne);
+      // Phát lên "MISADialogQuestion.vue"
+      // Thực hiện xóa Phát lên "EmployeeHome.vue"
+      this.$msemitter.emit("handleDeleteEmployeeById", [employeeId]);
+
+      // Thông báo: Hỏi người dùng có thực sự muốn xóa Employee đó
+    },
   },
 };
 </script>
@@ -276,7 +390,7 @@ export default {
       <thead>
         <tr>
           <th
-            class="table-header__checkbox sticky-column-thead1"
+            class="table-header__checkbox sticky-column-thead1 checkbox-item"
             style="min-width: 50px; background-color: #f2f2f2; z-index: 2"
           >
             <input type="checkbox" @click="handleCheckAll" />
@@ -285,31 +399,42 @@ export default {
             class="sticky-column-thead2"
             style="min-width: 100px; background-color: #f2f2f2; z-index: 2"
           >
-            MÃ NHÂN VIÊN
+            {{ this.$MISAResource.EmployeeList.thead.employeeCode.text }}
           </th>
           <th
             class="sticky-column-thead3"
             style="min-width: 150px; background-color: #f2f2f2; z-index: 2"
           >
-            TÊN NHÂN VIÊN
+            {{ this.$MISAResource.EmployeeList.thead.employeeName.text }}
           </th>
           <th class="table-header__gender" style="min-width: 100px">
-            GIỚI TÍNH
+            {{ this.$MISAResource.EmployeeList.thead.gender.text }}
           </th>
-          <th style="min-width: 150px">NGÀY SINH</th>
           <th style="min-width: 150px">
-            <label class="textfield__label" title="Chứng minh thư nhân dân"
-              >Số CMND</label
+            {{ this.$MISAResource.EmployeeList.thead.dateOfBirth.text }}
+          </th>
+          <th style="min-width: 150px">
+            <label
+              class="textfield__label"
+              :title="
+                this.$MISAResource.EmployeeList.thead.identifyNumber.tooltip
+              "
+            >
+              {{
+                this.$MISAResource.EmployeeList.thead.identifyNumber.text
+              }}</label
             >
           </th>
-          <th style="min-width: 80px">CHỨC DANH</th>
-          <th class="table-header__unit" style="min-width: 100px">
-            TÊN ĐƠN VỊ
+          <th style="min-width: 80px">
+            {{ this.$MISAResource.EmployeeList.thead.title.text }}
           </th>
-          <th>SỐ TÀI KHOẢN</th>
-          <th>TÊN NGÂN HÀNG</th>
+          <th class="table-header__unit" style="min-width: 100px">
+            {{ this.$MISAResource.EmployeeList.thead.unit.text }}
+          </th>
+          <th>{{ this.$MISAResource.EmployeeList.thead.bankAccount.text }}</th>
+          <th>{{ this.$MISAResource.EmployeeList.thead.bankName.text }}</th>
           <th style="min-width: 272px; width: 300px">
-            CHI NHÁNH TÀI KHOẢN NGÂN HÀNG
+            {{ this.$MISAResource.EmployeeList.thead.branch.text }}
           </th>
           <!--<th colspan="2">CHỨC NĂNG</th> -->
         </tr>
@@ -324,23 +449,29 @@ export default {
         >
           <td style="min-width: 50px" class="sticky-column1 checkbox-item">
             <input
+              @dblclick.stop
               type="checkbox"
-              :checked="this.isCheckedAll"
+              style="cursor: pointer"
+              :checked="
+                this.isCheckedAll
+                  ? this.isCheckedAll
+                  : checkboxEmployeesId.includes(employee.EmployeeId) // Thực hiện checked records cho trang trước đó
+              "
               @change="handleChangeInputCheckbox(employee)"
             />
           </td>
           <td class="sticky-column2">{{ employee.EmployeeCode }}</td>
           <td class="sticky-column3">{{ employee.FullName }}</td>
-          <td>{{ employee.GenderName }}</td>
+          <td>{{ employee?.GenderName }}</td>
           <td class="table-employee-dateOfBirth">
             {{ this.convertDate(employee.DateOfBirth) }}
           </td>
-          <td>123456789</td>
+          <td>{{ employee.IdentityNumber }}</td>
           <td></td>
           <td>MISA</td>
-          <td>0123456789</td>
-          <td>MBBank</td>
-          <td style="width: 150px">Hà Nội</td>
+          <td>{{ employee.bankInfo?.AccountNumber }}</td>
+          <td>{{ employee.bankInfo?.BankName }}</td>
+          <td style="width: 150px">{{ employee.bankInfo?.Branch }}</td>
           <td
             colspan="2"
             class="table-employee__options"
@@ -348,8 +479,10 @@ export default {
           >
             <div class="table-employee__options-edit">
               <button
+                @dblclick.stop
                 class="btn-custom-rounded btn-custom-rounded-custom"
                 @click="handleEditEmployeeItem(employee)"
+                :title="this.$MISAResource.EmployeeList.btnEdit.tooltip"
               >
                 <i class="fas fa-pen"></i>
               </button>
@@ -359,74 +492,42 @@ export default {
               class="table-employee__options-edit"
               @click.stop="handleShowOption(index, $event)"
             >
-              <button class="btn-custom-rounded btn-custom-rounded-option">
+              <button
+                @dblclick.stop
+                class="btn-custom-rounded btn-custom-rounded-option"
+                :title="this.$MISAResource.EmployeeList.btnOption.tooltip"
+              >
                 <i class="fas fa-ellipsis-h"></i>
               </button>
               <div
-                class="main__table-info-icon-option-items"
+                :class="[
+                  'main__table-info-icon-option-items',
+                  this.employees.length >=
+                    this.$MagicNumber.EmployeeList.popup.qualityViewInitial &&
+                  index >=
+                    this.employees.length -
+                      this.$MagicNumber.EmployeeList.popup
+                        .qualityRecordShowPopupTop
+                    ? 'bottom-popup'
+                    : '',
+                ]"
                 v-show="isShowContentOption[index]"
               >
-                <div class="main__table-info-icon-option-item">Nhân bản</div>
-                <div class="main__table-info-icon-option-item">Xóa</div>
+                <div class="main__table-info-icon-option-item">
+                  {{
+                    this.$MISAResource.EmployeeList.btnOption.btnDuplicate.text
+                  }}
+                </div>
+                <div
+                  class="main__table-info-icon-option-item"
+                  @click="handleDeleteEmployee(employee.EmployeeId)"
+                >
+                  {{ this.$MISAResource.EmployeeList.btnOption.btnDelete.text }}
+                </div>
               </div>
             </div>
           </td>
         </tr>
-
-        <!-- <tr
-          v-for="(employee, index) in employees"
-          :key="employee.EmployeeId"
-          @dblclick="handleEditEmployeeItem(employee)"
-          @mouseout="handleMouseOutEmployeeItem(index)"
-          @mouseover="handleMouseOverEmployeeItem(index)"
-        >
-          <td style="min-width: 50px" class="sticky-column1 checkbox-item">
-            <input
-              type="checkbox"
-              @change="handleChangeInputCheckbox(employee)"
-            />
-          </td>
-          <td class="sticky-column2">{{ employee.id }}</td>
-          <td class="sticky-column3">{{ employee.name }}</td>
-          <td>Nam</td>
-          <td class="table-employee-dateOfBirth">01/02/2000</td>
-          <td>123456789</td>
-          <td></td>
-          <td>{{ employee.company.name }}</td>
-          <td style="text-align: right">{{ employee.phone }}</td>
-          <td>MBBank</td>
-          <td style="width: 150px">Hà Nội</td>
-          <td
-            colspan="2"
-            class="table-employee__options"
-            v-show="showOption[index]"
-          >
-            <div
-              class="table-employee__options-edit"
-              @click="handleEditEmployeeItem(employee)"
-            >
-              <button class="btn-custom-rounded btn-custom-rounded-custom">
-                <i class="fas fa-pen"></i>
-              </button>
-            </div>
-
-            <div
-              class="table-employee__options-edit"
-              @click.stop="handleShowOption(index, $event)"
-            >
-              <button class="btn-custom-rounded btn-custom-rounded-option">
-                <i class="fas fa-ellipsis-h"></i>
-              </button>
-              <div
-                class="main__table-info-icon-option-items"
-                v-show="isShowContentOption[index]"
-              >
-                <div class="main__table-info-icon-option-item">Nhân bản</div>
-                <div class="main__table-info-icon-option-item">Xóa</div>
-              </div>
-            </div>
-          </td>
-        </tr> -->
       </tbody>
     </table>
   </div>

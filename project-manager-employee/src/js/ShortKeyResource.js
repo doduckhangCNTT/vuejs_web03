@@ -1,0 +1,20 @@
+const ShortCutKey = {
+  BtnSave: {
+    char: "s",
+    tooltip: "CTRL + S",
+  },
+  BtnSaveAdd: {
+    char: "s",
+    tooltip: "CTRL + SHIFT + S",
+  },
+  BtnAdd: {
+    char: "1",
+    tooltip: "CTRL + 1",
+  },
+  CloseForm: {
+    char: "Escape",
+    tooltip: "Escape",
+  },
+};
+
+export default ShortCutKey;

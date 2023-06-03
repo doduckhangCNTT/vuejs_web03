@@ -3,11 +3,23 @@ export default {
   name: "MISADialogQuestion",
   props: ["warnings"],
   data() {
-    return {};
+    return { deleteType: "" };
+  },
+  created() {
+    this.$msemitter.on("deleteType", this.handleDeleteType);
   },
   methods: {
     statusDeleteEmployee(status) {
-      this.$msemitter.emit("closeDialogQuestion", status);
+      const infoDelete = {
+        deleteType: this.deleteType,
+        status,
+      };
+      // Phát sự kiện tới App.js & EmployeeHome.js
+      this.$msemitter.emit("closeDialogQuestion", infoDelete);
+    },
+
+    handleDeleteType(deleteType) {
+      this.deleteType = deleteType;
     },
   },
 };
@@ -24,11 +36,14 @@ export default {
           class="dialog-question__header-close"
           @click="statusDeleteEmployee(false)"
         >
-          <i class="fa-solid fa-xmark"></i>
+          <!-- <i class="fa-solid fa-xmark"></i> -->
         </div>
       </div>
       <div class="dialog-question__des">
-        {{ this.$MISAResource.textCRUD.textDeleteEmployee }}
+        <!-- {{ this.$MISAResource.textCRUD.textDeleteEmployee }} -->
+        <ul>
+          <li v-for="warning in warnings">{{ warning }}</li>
+        </ul>
       </div>
       <div class="dialog-question__button">
         <button

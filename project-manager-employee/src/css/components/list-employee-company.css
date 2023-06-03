@@ -198,7 +198,7 @@
   padding: 16px 24px 0 24px;
   display: flex;
   flex-direction: column;
-  height: calc(100% - 56px);
+  height: calc(100% - 58px);
 }
 
 .main__top {
@@ -284,7 +284,15 @@
   height: 21px;
 }
 
-.icon-refresh {
+.main__table-handleOnTable-exportExcel {
+  background: url("../../assets/ResourceTable/img/Sprites.64af8f61.svg")
+    no-repeat -705px -258px;
+  width: 23px;
+  height: 20px;
+}
+
+.icon-refresh,
+.icon-exportExcel {
   padding: 6px;
   height: 36px;
   width: 36px;
@@ -295,15 +303,17 @@
   border-radius: var(--border-radius-primary);
 }
 
-.icon-refresh:hover {
+.icon-refresh:hover,
+.icon-exportExcel:hover {
   background-color: rgba(80, 184, 60, 0.1);
   cursor: pointer;
 }
 
 /* Main table -- End */
 .main__table-info {
-  max-height: 706px;
+  max-height: 721px;
   /* max-height: calc(100% - 56px); */
+  height: 721px;
   width: 100%;
   overflow: auto;
   position: relative;
@@ -473,7 +483,7 @@ td {
   right: -6px;
   width: 150px;
   border: 1px solid var(--background-color-primary);
-  margin: 10px 0;
+  margin: 8px 0;
   background-color: #fff;
   z-index: 3;
 }
@@ -603,4 +613,14 @@ td {
 
 .table-employee__options.visible {
   visibility: hidden;
+}
+
+.checkbox-item input {
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+}
+
+.bottom-popup {
+  bottom: 26px;
 }

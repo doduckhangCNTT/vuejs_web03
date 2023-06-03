@@ -1,6 +1,58 @@
 <script>
 export default {
   name: "TheNavbar",
+
+  data() {
+    return {
+      listNavbar: [
+        {
+          title: this.$MISAResource.Navbar.HomeNav.Overview.title,
+          tooltip: this.$MISAResource.Navbar.HomeNav.Overview.tooltip,
+          link: "/",
+        },
+        {
+          title: this.$MISAResource.Navbar.HomeNav.Employee.title,
+          tooltip: this.$MISAResource.Navbar.HomeNav.Employee.tooltip,
+          link: "/employee",
+        },
+        {
+          title: this.$MISAResource.Navbar.HomeNav.Customer.title,
+          tooltip: this.$MISAResource.Navbar.HomeNav.Customer.tooltip,
+          link: "/customer",
+        },
+        {
+          title: this.$MISAResource.Navbar.HomeNav.Appoint.title,
+          tooltip: this.$MISAResource.Navbar.HomeNav.Appoint.tooltip,
+          link: "/appoint",
+        },
+        {
+          title: this.$MISAResource.Navbar.HomeNav.File.title,
+          tooltip: this.$MISAResource.Navbar.HomeNav.File.tooltip,
+          link: "/file",
+        },
+        {
+          title: this.$MISAResource.Navbar.HomeNav.Bonus.title,
+          tooltip: this.$MISAResource.Navbar.HomeNav.Bonus.tooltip,
+          link: "/bonus",
+        },
+        {
+          title: this.$MISAResource.Navbar.HomeNav.Problem.title,
+          tooltip: this.$MISAResource.Navbar.HomeNav.Problem.tooltip,
+          link: "/problem",
+        },
+        {
+          title: this.$MISAResource.Navbar.HomeNav.Zoning.title,
+          tooltip: this.$MISAResource.Navbar.HomeNav.Zoning.tooltip,
+          link: "/zoning",
+        },
+        {
+          title: this.$MISAResource.Navbar.HomeNav.Report.title,
+          tooltip: this.$MISAResource.Navbar.HomeNav.Report.tooltip,
+          link: "/report",
+        },
+      ],
+    };
+  },
 };
 </script>
 
@@ -18,7 +70,16 @@ export default {
 
     <!-- Navbar information -- Start-- -->
     <div class="navbar__items">
-      <div class="navbar__item-overview">
+      <router-link
+        v-for="item in this.listNavbar"
+        :to="item.link"
+        class="navbar__item-overview"
+      >
+        <div class="navbar__item-overview-icon" :title="item.tooltip"></div>
+        <div class="navbar__item-title">{{ item.title }}</div>
+      </router-link>
+
+      <!-- <div class="navbar__item-overview">
         <div class="navbar__item-overview-icon"></div>
         <div class="navbar__item-title">Tổng quan</div>
       </div>
@@ -59,7 +120,7 @@ export default {
       <div class="navbar__item-overview">
         <div class="navbar__item-shopping-icon"></div>
         <div class="navbar__item-title">Mua hàng</div>
-      </div>
+      </div> -->
     </div>
     <!-- Navbar information -- End-- -->
   </div>
