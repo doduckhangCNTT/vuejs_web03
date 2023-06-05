@@ -4,6 +4,7 @@ import { ShowValidate } from "../../functions/CatchError";
 import {
   checkBlank,
   checkDuplicateEmployeeCode,
+  checkEmail,
 } from "../../functions/ValidateForm";
 import { showCombobox } from "../../functions/Combobox";
 import MISAInput from "../../components/MISAInput.vue";
@@ -26,13 +27,17 @@ export default {
         Gender: 0,
       },
       department: {},
+      bank: {},
       employees: [], // Danh sách tất cả dữ liệu của Nhân viên
       departments: [], // Danh sách tất cả dữ liệu của Phòng ban
+      banks: [], // Danh sách tất cả dữ liệu ngân hàng
       inputs: [],
       currentIndex: 0, // index của thẻ input hiện tại được chọn
       isFirstFocusInput: false,
       formattedDate: "",
       cbListDepartment: [], // Danh sách dữ liệu phòng ban cho combobox
+      cbListBank: [], // Danh sách dữ liệu ngân hàng cho combobox
+      queryUrl: {},
     };
   },
   async created() {
@@ -47,13 +52,16 @@ export default {
       }
     );
 
-    await this.handleCustomValueCombobox();
+    await this.handleCustomValueDepartmentCombobox();
+    await this.handleCustomValueBankCombobox();
     // Sử dụng tabIndex khi vào form info employee
     // useTabIndex();
 
     // Thực hiện lấy id nhân viên trên url
     this.employeeId = this.$route.params.id;
-    if (this.isAdd) {
+    this.queryUrl = this.$route.query;
+
+    if (this.behaviorHandle === this.$BehaviorHandleEnum.AddNew) {
       // Thực hiện post employee
       try {
         // Tạo mã employee mới
@@ -61,7 +69,6 @@ export default {
         this.$nextTick(async function () {
           // const res = await getData(`${BaseUrl}/Employees/NewCode`);
           const res = await getNewCode(this.$EntityEnum.Employees);
-          // this.employee.EmployeeCode = res.data[0];
           this.employee.EmployeeCode = res.data;
           // this.$refs.textCodeEmployee.focus();
         });
@@ -69,7 +76,10 @@ export default {
       } catch (error) {
         console.log(error.message);
       }
-    } else {
+    } else if (
+      this.behaviorHandle === this.$BehaviorHandleEnum.Edit ||
+      this.behaviorHandle === this.$BehaviorHandleEnum.Duplicate
+    ) {
       /**
        * - Thực mở form cập nhật thông tin nhân viên
        * - Lấy thông tin nhân viên theo id -> truyền thông tin nhân viên đó lên form
@@ -81,35 +91,46 @@ export default {
             this.$EntityEnum.Employees,
             this.employeeId
           );
-
+          // Khai báo biến tạm cho nhân viên
+          let tempEmployee;
           // 2. Thực hiện cấu trúc lại dateOfBirth theo yyyy-mm-dd
           this.convertAndSetDate(`${res.data.DateOfBirth}`);
           // 3. Đẩy thông tin lên form
           if (res.data.BankId) {
+            // Thực hiện kiểm tra bankId có tồn tại -> Lấy thông tin bank -> ghép vào dữ liệu employee
             const resBank = await getDataById(
               this.$EntityEnum.Banks,
               res.data.BankId
             );
-            this.employee = {
+            tempEmployee = {
               ...res.data,
               DateOfBirth: this.formattedDate,
               BankInfo: resBank.data,
             };
           } else {
-            this.employee = {
+            tempEmployee = {
               ...res.data,
               DateOfBirth: this.formattedDate,
               BankInfo: {},
             };
           }
-
-          // this.employee = res.data[0];
-          // this.$refs.textCodeEmployee.focus();
+          // Thực hiện cập nhật EmployeeCode mới cho việc nhân bản
+          if (this.behaviorHandle === this.$BehaviorHandleEnum.Duplicate) {
+            // Lấy mã code mới cho nhân viên
+            const res = await getNewCode(this.$EntityEnum.Employees);
+            // Cập nhật mã code mới
+            this.employee = { ...tempEmployee, EmployeeCode: res.data };
+          } else {
+            // Giữ nguyên giá trị muốn cập nhật -> đẩy lên form
+            this.employee = tempEmployee;
+          }
         } catch (error) {
           console.log(error.message);
         }
+        // Thực hiện lấy thông tin phòng ban theo id
         if (this.employee?.DepartmentId) {
           try {
+            // Thực hiện lấy thông tin phòng ban theo mã phòng
             // const res = await getData(
             //   `${BaseUrl}/Departments/${this.employee?.DepartmentId}`
             // );
@@ -123,9 +144,23 @@ export default {
             console.log(error);
           }
         }
+        // Thực hiện lấy thông tin ngân hàng theo id
+        if (this.employee?.BankId) {
+          try {
+            const res = await getDataById(
+              this.$EntityEnum.Banks,
+              this.employee?.BankId
+            );
+            this.bank = res.data;
+          } catch (error) {
+            console.log(error);
+          }
+        }
       }
       // Thực hiện hiển thị thông báo trạng thái put
     }
+    // else if (this.behaviorHandle === this.$BehaviorHandleEnum.Duplicate) {
+    // }
 
     // Thực hiện lấy toàn bộ các phòng ban
     try {
@@ -224,7 +259,93 @@ export default {
         this.employee.FullName = fullName;
       }
     },
+
+    /**
+     * - Des: Thực hiện theo dõi giá trị DepartmentId, để khi chọn sang phòng ban mới thì cập nhật thông tin đối tượng Department
+     * Mục đích là để tránh việc khi thực hiện thay đổi giá trị trên input khác trong form thì giá trị department combobox không trở lại gt cũ
+     * Bởi vì mình khởi tạo giá trị ban đầu của combobox là giá trị trên đối tượng Department, chứ không phải giá trị theo thay đổi trong DepartmentId trong employee
+     */
+    "employee.DepartmentId": async function (newValue, oldValue) {
+      // Lấy thông tin phòng ban theo id đã chọn trên form
+      if (this.employee.DepartmentId) {
+        const res = await getDataById(this.$EntityEnum.Departments, newValue);
+        this.department = res.data;
+      }
+    },
+    /**
+     * - Des: Thực hiện theo dõi giá trị BankId, để khi chọn sang phòng ban mới thì cập nhật thông tin đối tượng Bank
+     * Mục đích là để tránh việc khi thực hiện thay đổi giá trị trên input khác trong form thì giá trị Bank combobox không trở lại gt cũ
+     * Bởi vì mình khởi tạo giá trị ban đầu của combobox là giá trị trên đối tượng Bank, chứ không phải giá trị theo thay đổi trong DepartmentId trong employee
+     */
+    "employee.BankId": async function (newValue, oldValue) {
+      // Lấy thông tin phòng ban theo id đã chọn trên form
+      if (this.employee.BankId) {
+        const res = await getDataById(this.$EntityEnum.Banks, newValue);
+        this.bank = res.data;
+      }
+    },
+
+    "employee.BranchInfo.Branch": function (newValue) {},
   },
+
+  computed: {
+    /**
+     * Params:
+     * Des:  Tính toán thêm hoặc cập nhật
+     * Author: DDKhang
+     * CreateAt: 3/5/2023
+     * ModifierAt: 3/5/2023
+     */
+    behaviorHandle() {
+      if (this.employeeId && this.queryUrl.duplicate === "true") {
+        return this.$BehaviorHandleEnum.Duplicate;
+      } else if (this.employeeId) {
+        return this.$BehaviorHandleEnum.Edit; // Thực hiện Edit
+      } else {
+        return this.$BehaviorHandleEnum.AddNew; // Thực hiện Create
+      }
+    },
+
+    /**
+     * - Xử lí hiển thị tiêu đề cho form
+     * - Author: DDKhang (3/6/2023)
+     */
+    title() {
+      switch (this.behaviorHandle) {
+        case this.$BehaviorHandleEnum.AddNew:
+          return this.$MISAResource.textCRUD.textAddEmployee;
+        case this.$BehaviorHandleEnum.Edit:
+          return this.$MISAResource.textCRUD.textEditEmployee;
+        case this.$BehaviorHandleEnum.Duplicate:
+          return this.$MISAResource.textCRUD.textAddEmployee;
+        default:
+          return "";
+      }
+    },
+
+    /**
+     * - Des: Khởi tạo giá trị mặc định cho combobox để hiển thị ngay khi ban đầu (dùng cho update mà muốn hiển thi)
+     * - Author: DDKhang (1/6/2023)
+     */
+    handleDefaultValueDepartmentCombobox() {
+      return {
+        id: this.department.DepartmentId,
+        value: this.department.DepartmentName,
+      };
+    },
+
+    /**
+     * - Des: Khởi tạo giá trị mặc định cho combobox để hiển thị ngay khi ban đầu (dùng cho update mà muốn hiển thi)
+     * - Author: DDKhang (1/6/2023)
+     */
+    handleDefaultValueBankCombobox() {
+      return {
+        id: this.bank.BankId,
+        value: this.bank.BankName,
+      };
+    },
+  },
+
   methods: {
     /**
      *
@@ -262,6 +383,16 @@ export default {
         // Thực hiện nhấn phím đóng Form
         event.preventDefault(); // Ngăn chặn hành động mặc định của trình duyệt
         this.handleShortcut();
+      } else if (
+        event.ctrlKey &&
+        event.altKey &&
+        event.key === this.$ShortCutResource.BtnSaveAdd.char
+      ) {
+        event.preventDefault();
+        // Không bắt sự kiến key trên form Edit
+        if (this.behaviorHandle !== this.$BehaviorHandleEnum.Edit) {
+          this.handleBtnSaveAndAdd();
+        }
       } else if (
         event.ctrlKey &&
         event.key === this.$ShortCutResource.BtnSave.char
@@ -343,37 +474,86 @@ export default {
         }
       });
       // Thực validate form
+      // 1. Kiểm tra rỗng
       const checkFullName = checkBlank(this.employee?.FullName);
       const checkCodeEmployee = checkBlank(this.employee?.EmployeeCode);
-      // Kiểm tra mã nhân viên có bị trùng lặp
+      // 2. Kiểm tra mã nhân viên có bị trùng lặp
       const isCheckDuplicateEmployeeCode = checkDuplicateEmployeeCode(
         this.employees,
         this.employee.EmployeeCode
       );
+      // 3. Kiểm tra email
+      if (this.employee?.Email) {
+        const res = checkEmail(this.employee?.Email);
+        if (!res.status) {
+          return ShowValidate(res.msg);
+        }
+      }
       if (checkFullName.status || checkCodeEmployee.status) {
         return ShowValidate(checkFullName.msg);
       }
 
       // Nếu không xảy ra lỗi trên những thẻ input
       if (!flagErrorInput) {
-        if (this.isAdd) {
-          // Thực hiện gọi api thêm nhân viên
+        if (
+          this.behaviorHandle === this.$BehaviorHandleEnum.AddNew ||
+          this.behaviorHandle === this.$BehaviorHandleEnum.Duplicate
+        ) {
+          // Thực hiện thêm
+          // 1. Thực hiện gọi api thêm nhân viên
           if (isCheckDuplicateEmployeeCode.status) {
             return ShowValidate(isCheckDuplicateEmployeeCode.msg);
           }
-          // Thực hiện thêm thông tin nhân viên
+          // 2. Thực hiện thêm thông tin nhân viên
           await postInfoEntity(this.$EntityEnum.Employees, this.employee);
-        } else {
+
+          // Thực hiện thông báo
+          // 1. Thông tin thông báo
+          const toastInfo = {
+            status: this.$MISAResource.Toast.AddEntity.AddSuccess.status,
+            msg: this.$MISAResource.Toast.AddEntity.AddSuccess.msg,
+          };
+          // 2. Phát lên App.vue -> để hiển thị Toast
+          this.$msemitter.emit("showToast", toastInfo, 5000);
+        } else if (this.behaviorHandle === this.$BehaviorHandleEnum.Edit) {
           // Thực hiện gọi api sửa nhân viên
-          console.log("Employee Update: ", this.employee);
           await updateInfoEntity(
             this.employee.EmployeeId,
             this.$EntityEnum.Employees,
             this.employee
           );
+
+          // Thực hiện thông báo
+          // 1. Thông tin thông báo
+          const toastInfo = {
+            status: this.$MISAResource.Toast.UpdateEntity.UpdateSuccess.status,
+            msg: this.$MISAResource.Toast.UpdateEntity.UpdateSuccess.msg,
+          };
+          // 2. Phát lên App.vue -> để hiển thị Toast
+          this.$msemitter.emit("showToast", toastInfo);
+        } else if (this.behaviorHandle === this.$BehaviorHandleEnum.Duplicate) {
         }
         // Thực hiện đóng form
         this.handleCloseFormEmployeeInfo();
+      }
+    },
+
+    /**
+     * - Des: Thực hiện cất và thêm thông tin
+     * Author: DDKhang (4/6/2023)
+     */
+    async handleBtnSaveAndAdd() {
+      // Thực hiện xử lí việc thêm thông tin
+      await this.handleBtnSave();
+      // Lấy mã code mới
+      const res = await getNewCode(this.$EntityEnum.Employees);
+      this.employee.EmployeeCode = res.data;
+
+      // Mở lại form thêm thông tin
+      if (this.behaviorHandle === this.$BehaviorHandleEnum.AddNew) {
+        this.$router.push("/employee/create");
+      } else if (this.behaviorHandle === this.$BehaviorHandleEnum.Duplicate) {
+        this.$router.push(`/employee/${this.employeeId}?duplicate=true`);
       }
     },
 
@@ -493,7 +673,7 @@ export default {
      * Des: Xử lí việc cung cấp class cho combobox
      * Author: DDKhang (1/6/2023)
      */
-    handleCustomClassCombobox() {
+    handleCustomClassDepartmentCombobox() {
       return {
         borderLeftNone: "border-left--none",
         backgroundWhite: "backgroundColor--white",
@@ -502,10 +682,25 @@ export default {
     },
 
     /**
+     * Des: Xử lí việc cung cấp class cho combobox
+     * Author: DDKhang (1/6/2023)
+     */
+    handleCustomClassBankCombobox() {
+      return {
+        borderLeftNone: "border-left--none",
+        listItemTop: "list-item--top",
+        borderRight: "border-right",
+        hiddenArrow: "hidden-arrow",
+        backgroundWhite: "backgroundColor--white",
+        widthInput: "width-250",
+      };
+    },
+
+    /**
      * - Des: Thực hiện khởi tạo giá trị đầu vào cho combobox trong form chi tiết theo dạng {id: ?, value: ?}
      * - Author: DDKhang (1/6/2023)
      */
-    async handleCustomValueCombobox() {
+    async handleCustomValueDepartmentCombobox() {
       try {
         // const res = await getData(`${BaseUrl}/Departments`);
         const res = await filterInfoEntity(this.$EntityEnum.Departments);
@@ -524,14 +719,20 @@ export default {
     },
 
     /**
-     * - Des: Khởi tạo giá trị mặc định cho combobox để hiển thị ngay khi ban đầu (dùng cho update mà muốn hiển thi)
+     * - Des: Thực hiện khởi tạo giá trị đầu vào cho combobox trong form chi tiết theo dạng {id: ?, value: ?}
      * - Author: DDKhang (1/6/2023)
      */
-    handleDefaultValueDepartmentCombobox() {
-      return {
-        id: this.department.DepartmentId,
-        value: this.department.DepartmentName,
-      };
+    async handleCustomValueBankCombobox() {
+      const res = await filterInfoEntity(this.$EntityEnum.Banks);
+      const banks = res.data.Data;
+      const result = banks.map((b) => {
+        return {
+          id: b.BankId,
+          value: b.BankName,
+        };
+      });
+      // Cập nhật giá trị cho status
+      this.cbListBank = result;
     },
 
     /**
@@ -540,6 +741,20 @@ export default {
      */
     handleChooseDepartmentRecord(option) {
       this.employee.DepartmentId = option.id;
+    },
+
+    /**
+     *
+     * @param {*} option - Xử lí chọn bản ghi trên combobox bank
+     * - Author: DDKhang (1/6/2023)
+     */
+    handleChooseBankRecord(option) {
+      this.employee.BankId = option.id;
+      this.$refs.inputBranch.handleAutoValue("abc");
+      this.employee = {
+        ...this.employee,
+        BrankInfo: { ...this.BrankInfo, Branch: "abc" },
+      };
     },
 
     /**
@@ -557,6 +772,20 @@ export default {
     },
 
     /**
+     *
+     * @param {*} event - Sự kiện mặc định khi gọi sự kiện
+     * - Des: Xử lí việc focus vào combobox bằng cách gọi đến hàm forcusInput bên trong component Combobox
+     * - Author: DDKhang (1/6/2023)
+     */
+    handleFocusComboboxBank(event) {
+      event.preventDefault();
+      // Tham chiếu đến combobox department
+      var refCombobox = this.$refs.comboboxBank;
+      // Gọi hàm trong component Combobox
+      refCombobox.focusInput();
+    },
+
+    /**
      * - Ngăn chặn bấm enter trên form
      * - Author: DDKhang (3/6/2023)
      */
@@ -565,21 +794,12 @@ export default {
         event.preventDefault();
       }
     },
-  },
-  computed: {
-    /**
-     * Params:
-     * Des:  Tính toán thêm hoặc cập nhật
-     * Author: DDKhang
-     * CreateAt: 3/5/2023
-     * ModifierAt: 3/5/2023
-     */
-    isAdd: function () {
-      if (this.employeeId) {
-        return false; // Thực hiện Edit
-      } else {
-        return true; // Thực hiện Create
-      }
+
+    updateBranch() {
+      this.employee = {
+        ...this.employee,
+        BrankInfo: { ...this.BrankInfo, Branch: "abc" },
+      };
     },
   },
 };
@@ -594,11 +814,7 @@ export default {
           <!-- Info employee header -- Start -->
           <div class="info-employee-header">
             <div class="info-employee-header-title">
-              {{
-                this.isAdd
-                  ? this.$MISAResource.textCRUD.textAddEmployee
-                  : this.$MISAResource.textCRUD.textEditEmployee
-              }}
+              {{ this.title }}
             </div>
             <div
               class="icon-help-close"
@@ -650,8 +866,8 @@ export default {
                       name="employeeCode"
                       v-model="employee.EmployeeCode"
                       :tabindex="this.$TabIndex.formEmployeeInfo.codeEmployee"
-                      required="true"
-                      focus="true"
+                      :required="true"
+                      :focus="true"
                     ></MISAInput>
                     <small class="form-message--error"></small>
                   </div>
@@ -691,7 +907,7 @@ export default {
                       v-model="this.employee.FullName"
                       placeholder="Nguyễn Ánh Bằng"
                       :tabindex="this.$TabIndex.formEmployeeInfo.employeeName"
-                      required="true"
+                      :required="true"
                       @keydown.tab.prevent="handleFocusComboboxDepartment"
                     ></MISAInput>
                     <small class="form-message--error"></small>
@@ -714,14 +930,12 @@ export default {
 
                   <div class="content-combobox">
                     <MISACombobox
-                      :customClass="this.handleCustomClassCombobox()"
+                      :customClass="this.handleCustomClassDepartmentCombobox()"
                       :listItemValue="this.cbListDepartment"
                       :handleChooseRecord="this.handleChooseDepartmentRecord"
-                      required="true"
+                      :required="true"
                       ref="comboboxDepartment"
-                      :defaultValueInput="
-                        this.handleDefaultValueDepartmentCombobox()
-                      "
+                      :defaultValueInput="handleDefaultValueDepartmentCombobox"
                       :tabindex="this.$TabIndex.formEmployeeInfo.comboboxUnit"
                     ></MISACombobox>
                   </div>
@@ -1141,6 +1355,7 @@ export default {
                     type="text"
                     name="bankAccount"
                     placeholder=""
+                    v-model="this.employee.AccountNumber"
                     :tabindex="this.$TabIndex.formEmployeeInfo.bankAccount"
                     ref="input16"
                   ></MISAInput>
@@ -1161,7 +1376,7 @@ export default {
                   <label class="textfield__label">{{
                     this.$MISAResource.EmployeeForm.labelForm.bankName.text
                   }}</label>
-                  <MISAInput
+                  <!-- <MISAInput
                     id="textfield__bankName"
                     class="textfield__input input-hover input-focus min-width-input"
                     type="text"
@@ -1175,7 +1390,18 @@ export default {
                     "
                     :tabindex="this.$TabIndex.formEmployeeInfo.bankName"
                     ref="input17"
-                  ></MISAInput>
+                  ></MISAInput> -->
+
+                  <div class="content-combobox">
+                    <MISACombobox
+                      :customClass="this.handleCustomClassBankCombobox()"
+                      :listItemValue="this.cbListBank"
+                      :handleChooseRecord="this.handleChooseBankRecord"
+                      ref="comboboxBank"
+                      :defaultValueInput="handleDefaultValueBankCombobox"
+                      :tabindex="this.$TabIndex.formEmployeeInfo.bankName"
+                    ></MISACombobox>
+                  </div>
                   <!-- <input
                     id="textfield__bankName"
                     class="textfield__input input-hover input-focus min-width-input"
@@ -1197,8 +1423,12 @@ export default {
                     type="text"
                     name="branch"
                     placeholder=""
+                    :modelValue="
+                      this.employee.BankInfo && this.employee.BankInfo.Branch
+                    "
                     :tabindex="this.$TabIndex.formEmployeeInfo.branch"
-                    ref="input18"
+                    ref="inputBranch"
+                    @update:modelValue="updateBranch"
                   ></MISAInput>
                   <!-- <input
                     id="textfield__branch"
@@ -1239,10 +1469,12 @@ export default {
 
             <MISAButton
               id="btnSaveAndAdd"
+              v-if="this.behaviorHandle !== this.$BehaviorHandleEnum.Edit"
               class="info-employee-footer-btnKeepAdd btn-hover btn-pressed"
+              @click.prevent="handleBtnSaveAndAdd"
               :tabindex="this.$TabIndex.formEmployeeInfo.saveAndAdd"
               :title="this.$ShortCutResource.BtnSaveAdd.tooltip"
-              ref="input20"
+              ref="btnSaveAdd"
               >{{
                 this.$MISAResource.ButtonText.formInfoEmployee.btnSaveAdd
               }}</MISAButton

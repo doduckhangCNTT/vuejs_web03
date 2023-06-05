@@ -6,9 +6,16 @@ export default {
     return { deleteType: "" };
   },
   created() {
+    // Nhận từ EmployeeHome.vue và EmployeeList.vue
     this.$msemitter.on("deleteType", this.handleDeleteType);
   },
   methods: {
+    /**
+     *
+     * @param {*} status - Cung cấp thông tin muốn xóa (có | không)
+     * - Thực hiện phát sự kiện muốn hay không xóa và kiểu muốn xóa
+     *  - Author: DDKhang (4/6/2023)
+     */
     statusDeleteEmployee(status) {
       const infoDelete = {
         deleteType: this.deleteType,
@@ -18,6 +25,11 @@ export default {
       this.$msemitter.emit("closeDialogQuestion", infoDelete);
     },
 
+    /**
+     *
+     * @param {*} deleteType - Cập nhật kiểu xóa (một || nhiều)
+     * - Author: DDKhang (4/6/2023)
+     */
     handleDeleteType(deleteType) {
       this.deleteType = deleteType;
     },

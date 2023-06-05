@@ -82,6 +82,9 @@ export default {
           `/employee?page=${parseInt(page)}&limit=${option.value}`
         );
       }
+
+      // Phát đến EmployeeHome.vue
+      this.$msemitter.emit("emptyTextSearch");
     },
 
     totalRecord(data) {
@@ -200,7 +203,6 @@ export default {
      * Author: DDKhang (1/6/2023)
      */
     handleComboboxValueUpdate(newVal) {
-      console.log("NewValue: ", newVal);
       this.comboboxValue = newVal;
     },
   },

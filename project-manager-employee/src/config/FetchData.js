@@ -115,7 +115,7 @@ export async function filterInfoEntity(entityName, entityFilter = null) {
   if (entityFilter !== null) {
     const { pageSize, pageNumber, valueFilter } = entityFilter;
     if (valueFilter !== null) {
-      query = `entityFilter=${valueFilter}`;
+      query = `pageSize=${pageSize}&pageNumber=${pageNumber}&entityFilter=${valueFilter}`;
     } else {
       query = `pageSize=${pageSize}&pageNumber=${pageNumber}`;
     }

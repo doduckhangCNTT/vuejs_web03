@@ -26,19 +26,23 @@ export default {
     return {};
   },
   computed: {
-    bankName: {
-      get() {
-        return this.value ? this.value.BankName : "";
-      },
-      set(newValue) {
-        this.$emit("update:value", { ...this.value, bankName: newValue });
-      },
-    },
+    // bankName: {
+    //   get() {
+    //     return this.value ? this.value.BankName : "";
+    //   },
+    //   set(newValue) {
+    //     this.$emit("update:value", { ...this.value, bankName: newValue });
+    //   },
+    // },
   },
   methods: {
-    updateBankName(event) {
-      this.modelValue = event.target.value;
-    },
+    /**
+     * - Cập nhật tên ngân hàng
+     * - Author: DDKhang (4/6/2023)
+     */
+    // updateBankName(event) {
+    //   this.modelValue = event.target.value;
+    // },
     /**
      * Params:
      * Des: Thực hiện focus vào thẻ input nào có thuộc tính 'focus="true"'
@@ -87,13 +91,35 @@ export default {
             "title",
             this.$MISAResource.textError.textErrorRequired
           );
+
+          // Tham chiếu đến thẻ con (small hiển thị lỗi)
+          // const smallMessageError = tagParent.querySelector(
+          //   ".form-message--error small"
+          // );
+          // if (smallMessageError) {
+          //   // smallMessageError.style.display = "block";
+          //   smallMessageError.innerHTML =
+          //     this.$MISAResource.textError.textErrorRequired;
+          // }
         } else {
           // Tham chieu len thẻ cha (".formGroup")
           const tagParent = tagCurrent.closest(".form-group");
           tagParent.classList.remove("invalid");
           tagCurrent.setAttribute("title", "");
+
+          // const smallMessageError = tagParent.querySelector(
+          //   ".form-message--error small"
+          // );
+          // if (smallMessageError) {
+          //   smallMessageError.innerHTML = "";
+          // }
         }
       }
+    },
+
+    handleAutoValue(value) {
+      console.log("Value: ", value);
+      // this.modelValue = value;
     },
   },
   mounted() {

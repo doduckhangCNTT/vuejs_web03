@@ -5,7 +5,7 @@ const ShortCutKey = {
   },
   BtnSaveAdd: {
     char: "s",
-    tooltip: "CTRL + SHIFT + S",
+    tooltip: "CTRL + ALT + S",
   },
   BtnAdd: {
     char: "1",

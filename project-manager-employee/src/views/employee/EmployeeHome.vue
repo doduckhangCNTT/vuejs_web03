@@ -3,11 +3,11 @@ import EmployeeForm from "./EmployeeForm.vue";
 import EmployeeList from "./EmployeeList.vue";
 import { ShowQuestion } from "../../functions/CatchError";
 import EmployeeHomeFooter from "./EmployeeHomeFooter.vue";
-import BaseUrl from "../../config/BaseUrl";
 import { deleteMultiple, filterInfoEntity } from "../../config/FetchData";
 import MISAButton from "../../components/MISAButton.vue";
 import MISACombobox from "../../components/MISACombobox.vue";
 import axios from "axios";
+import MISAToast from "../../components/MISAToast.vue";
 // import MISACombobox from "../../components/MISACombobox.vue";
 
 export default {
@@ -18,10 +18,12 @@ export default {
     EmployeeHomeFooter,
     MISAButton,
     MISACombobox,
+    MISAToast,
   },
   data() {
     return {
-      checkboxListEmployeeId: [],
+      checkboxListEmployeeId: [], // Chứa danh sách employeeId để thực hiện xóa
+      deleteSingleEmployeeId: [], // Chứa một giá trị duy nhất mã nhân viên muốn xóa
       textSearch: "",
       isAgreeDeleteEmployee: false,
       options: [
@@ -38,6 +40,7 @@ export default {
           label: "JavaScript",
         },
       ],
+      numberValue: 0,
     };
   },
   created() {
@@ -46,16 +49,26 @@ export default {
       "handleDeleteEmployeeById",
       this.handleDeleteEmployeeById
     );
+    // Nhận tính hiệu xóa một từ EmployeeList.vue
+    this.$msemitter.on("deleteSingleEmployeeId", this.deleteOneEmployeeId);
     // Nhận tín hiệu đóng "MISADialogQuestion.vue" xóa employee
     this.$msemitter.on("closeDialogQuestion", this.statusDeleteEmployee);
   },
   mounted() {
     window.addEventListener("keydown", this.handleKeyDown);
+    // Nhận từ EmployeeHomeFooter.vue
+    this.$msemitter.on("emptyTextSearch", this.handleEmptyTextSearch);
   },
   beforeUnmount() {
     window.removeEventListener("keydown", this.handleKeyDown);
   },
   methods: {
+    /**
+     *
+     * @param {*} event - Sự kiện mặc định
+     * - Thực hiện xử lí khi nhấn phím
+     * - Author: (8/5/2023)
+     */
     handleKeyDown(event) {
       if (event.ctrlKey && event.key === this.$ShortCutResource.BtnAdd.char) {
         event.preventDefault(); // Ngăn chặn hành động mặc định của trình duyệt
@@ -63,6 +76,10 @@ export default {
       }
     },
 
+    /**
+     * - Xử lí phím tắt
+     * - Author: DDKhang (8/5/2023)
+     */
     handleShortcut() {
       this.$router.push("/employee/create");
       // Thêm mã lệnh bạn muốn thực hiện khi nhấn phím tắt Ctrl + S trên nút ở đây
@@ -76,6 +93,8 @@ export default {
      * ModifierAt: 8/5/2023
      */
     statusDeleteEmployee(infoDelete) {
+      // - status: Trạng thái có hoặc không xóa
+      // - deleteType: Kiểu muốn xóa (một, nhiều)
       const { status, deleteType } = infoDelete;
 
       switch (deleteType) {
@@ -84,44 +103,72 @@ export default {
           if (status) {
             // Thực hiện xóa những employee đã chọn, khi bấm "Có" trên dialog
             deleteMultiple(this.$EntityEnum.Employees, listEntityId);
-
-            // this.checkboxListEmployeeId.forEach(async (id) => {
-            //   this.$axios
-            //     .delete(`${BaseUrl}/Employees/delete?employeeId=${id}`)
-            //     .then((res) => {
-            //       console.log("Data Delete: ", res);
-            //     })
-            //     .catch((err) => {
-            //       console.log(err);
-            //     });
-            // });
             // Cập nhật lại danh sách employee sẽ xóa => ẩn nút "Delete"
             this.checkboxListEmployeeId = [];
+
+            // Thực hiện thông báo
+            // 1. Thông tin thông báo
+            const toastInfo = {
+              status:
+                this.$MISAResource.Toast.DeleteEntity.DeleteSuccess.status,
+              msg: this.$MISAResource.Toast.DeleteEntity.DeleteSuccess.msg,
+            };
+            // 2. Phát lên App.vue -> để hiển thị Toast
+            this.$msemitter.emit("showToast", toastInfo);
           }
           break;
         case this.$DeleteType.deleteOne:
           if (status) {
-            const listEntityId = this.checkboxListEmployeeId.toString();
-            deleteMultiple(this.$EntityEnum.Employees, listEntityId);
+            // Thực hiện xóa employeeId trong danh sách xóa nhiều
+            const checkboxListEmployeeIdNew =
+              this.checkboxListEmployeeId.filter(
+                (employeeId) => employeeId !== this.deleteSingleEmployeeId[0]
+              );
+            this.checkboxListEmployeeId = checkboxListEmployeeIdNew;
 
-            //   this.checkboxListEmployeeId.forEach(async (id) => {
-            //     this.$axios
-            //       .delete(`${BaseUrl}/Employees/${id}`)
-            //       .then((res) => {
-            //         console.log("Data Delete: ", res);
-            //       })
-            //       .catch((err) => {
-            //         console.log(err);
-            //       });
-            //   });
+            // const listEntityId = this.checkboxListEmployeeId.toString();
+            const listEntityId = this.deleteSingleEmployeeId.toString();
+            deleteMultiple(this.$EntityEnum.Employees, listEntityId);
           }
           // Cập nhật lại danh sách employee sẽ xóa => ẩn nút "Delete"
-          this.checkboxListEmployeeId = [];
+          // this.checkboxListEmployeeId = [];
+
+          // Thực hiện thông báo
+          // 1. Thông tin thông báo
+          const toastInfo = {
+            status: this.$MISAResource.Toast.DeleteEntity.DeleteSuccess.status,
+            msg: this.$MISAResource.Toast.DeleteEntity.DeleteSuccess.msg,
+          };
+          // 2. Phát lên App.vue -> để hiển thị Toast
+          this.$msemitter.emit("showToast", toastInfo);
           break;
         default:
           break;
       }
       this.isAgreeDeleteEmployee = status;
+    },
+
+    /**
+     * Params: null
+     * Des:  Thực hiện xóa nhiều employee được chọn
+     * Author: DDKhang
+     * CreateAt: 30/4/2023
+     * ModifierAt: 30/4/2023
+     */
+    handleDeleteEmployees() {
+      // Phát đến MISADialogQuestion.vue
+      this.$msemitter.emit("deleteType", this.$DeleteType.deleteMany);
+      // Thực hiện thông báo xóa theo tương ứng theo số lượng bản ghi
+      let contentInfoDelete = "";
+      if (this.checkboxListEmployeeId.length > 1) {
+        // Thông báo khi có nhiều bản ghi
+        contentInfoDelete = this.$MISAResource.Delete.deleteManyInfo;
+      } else {
+        // Thông báo khi chỉ xóa 1 bản ghi
+        contentInfoDelete = this.$MISAResource.Delete.deleteOneInfo;
+      }
+      // Thực hiện hiển thị dialog thông báo
+      ShowQuestion(contentInfoDelete);
     },
 
     /**
@@ -144,6 +191,10 @@ export default {
      */
     handleRefreshBtn() {
       this.$msemitter.emit("refresh"); // EmployeeList
+      this.textSearch = "";
+    },
+
+    handleEmptyTextSearch() {
       this.textSearch = "";
     },
 
@@ -188,25 +239,11 @@ export default {
     },
 
     /**
-     * Params: null
-     * Des:  Thực hiện xóa nhiều employee được chọn
-     * Author: DDKhang
-     * CreateAt: 30/4/2023
-     * ModifierAt: 30/4/2023
+     * - Thực hiện lưu trữ một mã nhân viên muốn xóa
+     * @param { singleEmployeeId } - Mảng chưa một mã nhân viên
      */
-    async handleDeleteEmployees() {
-      this.$msemitter.emit("deleteType", this.$DeleteType.deleteMany);
-      // Thực hiện thông báo xóa theo tương ứng theo số lượng bản ghi
-      let contentInfoDelete = "";
-      if (this.checkboxListEmployeeId.length > 1) {
-        // Thông báo khi có nhiều bản ghi
-        contentInfoDelete = this.$MISAResource.Delete.deleteManyInfo;
-      } else {
-        // Thông báo khi chỉ xóa 1 bản ghi
-        contentInfoDelete = this.$MISAResource.Delete.deleteOneInfo;
-      }
-      // Thực hiện hiển thị dialog thông báo
-      ShowQuestion(contentInfoDelete);
+    deleteOneEmployeeId(singleEmployeeId) {
+      this.deleteSingleEmployeeId = [...singleEmployeeId];
     },
 
     /**
@@ -218,10 +255,24 @@ export default {
      */
     async handleSearchEmployee(event) {
       event.preventDefault();
+
+      let { page, limit } = this.$route.query;
+      if (!page) page = 1;
+      if (!limit) limit = 20;
+
+      // // Lấy giá trị hiện tại của URL
+      // const currentParams = this.$route.query;
+      // // Thêm tham số tìm kiếm mới vào đối tượng params
+      // const newParams = { ...currentParams, search: "abc" };
+      // // Sử dụng $router.push để điều hướng và cập nhật URL với tham số tìm kiếm mới
+      // this.$router.push({ query: newParams });
+
       if (this.textSearch.trim() === "") {
         this.$msemitter.emit("refresh");
       } else {
         const entityFilter = {
+          pageSize: limit,
+          pageNumber: page,
           valueFilter: this.textSearch,
         };
         const res = await filterInfoEntity(
@@ -240,6 +291,11 @@ export default {
       //     console.log(err);
       //   });
     },
+
+    showToast() {
+      let number = this.numberValue++;
+      this.$refs.toast.showToast("Hello, this is a toast!" + number, 5000);
+    },
   },
 };
 </script>
@@ -251,7 +307,7 @@ export default {
       {{ this.$MISAResource.EmployeeHome.title.tableName }}
     </div>
 
-    <el-select
+    <!-- <el-select
       v-model="value"
       multiple
       filterable
@@ -266,7 +322,7 @@ export default {
         :label="item.label"
         :value="item.value"
       />
-    </el-select>
+    </el-select> -->
 
     <MISAButton
       id="btn-add-employee"
@@ -291,7 +347,7 @@ export default {
     <router-view name="EmployeeRouterView"></router-view>
 
     <!-- DIALOG -->
-    <div id="dialog" class="dialog hidden dialog-close">
+    <!-- <div id="dialog" class="dialog hidden dialog-close">
       <div class="dialog-warning">
         <div class="dialog-warning__notification">
           <div class="dialog-warning__icon">
@@ -311,12 +367,19 @@ export default {
           </button>
         </div>
       </div>
-    </div>
+    </div> -->
   </div>
   <!-- Main top -- End -->
 
   <div class="main__table">
     <div class="main__table-handleOnTable">
+      <div
+        class="main__table-qualityRecordChoose"
+        v-if="this.checkboxListEmployeeId.length > 0"
+      >
+        {{ this.$MISAResource.EmployeeHome.qualityRecordText }}
+        {{ this.checkboxListEmployeeId.length }}
+      </div>
       <MISAButton
         id="btn-add-employee"
         class="main__top-add-employee btn__delete btn-delete-hover"
@@ -359,6 +422,7 @@ export default {
           </div>
         </div>
       </form>
+
       <div
         class="icon-refresh"
         @click="handleRefreshBtn"
@@ -366,7 +430,7 @@ export default {
       >
         <div class="main__table-handleOnTable-refresh"></div>
       </div>
-      <!-- <input ref="fileInput" type="file" style="display: none" @change="exportToExcel" /> -->
+
       <div
         class="icon-exportExcel"
         @click="handleExportExcelBtn"

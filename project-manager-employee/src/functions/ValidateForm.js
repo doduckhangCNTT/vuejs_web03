@@ -41,3 +41,17 @@ export function checkDuplicateEmployeeCode(employees, employeeCode) {
     };
   return false;
 }
+
+/**
+ *
+ * @param {*} email - Email cần kiểm tra
+ * @returns {status: trạng thái kiểm tra, msg: Nội dụng lỗi}
+ */
+export function checkEmail(email) {
+  const regexString = "^[a-zA-Z0-9]+@[a-z]+\\.[a-z]{2,3}$";
+  const regex = new RegExp(regexString);
+  return {
+    status: regex.test(email),
+    msg: "Email không hợp lệ",
+  };
+}

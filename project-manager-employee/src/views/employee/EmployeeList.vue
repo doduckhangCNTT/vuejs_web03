@@ -26,7 +26,8 @@ export default {
       isShowContentOption,
       loading: false,
       loadingProgress: 0,
-      checkboxEmployeesId: [], // Chứa toàn bộ id employee được chọn
+      checkboxEmployeesId: [], // Chứa toàn bộ employeeId được chọn
+      deleteSingleEmployeeId: [], // Chỉ chứa một employeeId duy nhất
       isCheckedAll: false,
     };
   },
@@ -49,7 +50,11 @@ export default {
   watch: {
     "$route.query": {
       async handler() {
-        this.fetchDataByPageAndLimit();
+        console.log("QualityKey: ", Object.keys(this.$route.query).length);
+        if (Object.keys(this.$route.query).length > 0) {
+          console.log("Call");
+          this.fetchDataByPageAndLimit();
+        }
       },
       immediate: true, // Kích hoạt watcher ngay khi component được tạo ra
       deep: true, // Theo dõi sâu đối với các thuộc tính con của $route.query
@@ -184,6 +189,12 @@ export default {
       this.$msemitter.emit("recordsResInfo", res.data);
     },
 
+    /**
+     *
+     * @param {*} bankId - Mã ngân hàng
+     * - Des: Thực hiện lấy thông tin ngân hàng theo id
+     * Author: DDKhang (3/6/2023)
+     */
     async fetchBankInfo(bankId) {
       const res = await getDataById(this.$EntityEnum.Banks, bankId);
       return res;
@@ -335,17 +346,35 @@ export default {
 
     /**
      * Params: null
-     * Des: Thực hiện xử lí checked tất cả danh sách employee
+     * Des: Thực hiện xử lí checked tất cả danh sách employee trên trang hiện tại
      * Author: DDKhang
      * CreateAt: 3/5/2023
      * ModifierAt: 3/5/2023
      */
-    handleCheckAll() {
+    async handleCheckAll() {
       this.isCheckedAll = !this.isCheckedAll;
       if (this.isCheckedAll) {
+        let { page, limit } = this.$route.query;
         // trạng thái checkAll
+        // Khởi tạo giá trị ban đầu cho trang ban đầu
+        if (!page) page = 1;
+        if (!limit) limit = 20;
+        // Khởi tạo danh sách checked
         let listCheck = [];
-        this.employees.forEach((employee) => {
+        // Khởi tạo entityFilter để truyền lên api filter
+        const entityFilter = {
+          pageNumber: page,
+          pageSize: limit,
+          valueFilter: null,
+        };
+        // Thực hiện gọi api lấy những nhân viên trên trang hiện tại
+        const res = await filterInfoEntity(
+          this.$EntityEnum.Employees,
+          entityFilter
+        );
+        const employees = res.data.Data;
+        // Thực hiện lấy danh sách employeeId -> Cập nhật danh sách employee được checked
+        employees.forEach((employee) => {
           listCheck.push(employee.EmployeeId);
         });
         this.checkboxEmployeesId = [...listCheck];
@@ -354,6 +383,7 @@ export default {
         this.checkboxEmployeesId = [];
       }
       if (this.checkboxEmployeesId.length >= 0) {
+        // Phát lên EmployeeHome.vue -> Để khi bấm nút Delete trên EmployeeHome
         this.$msemitter.emit(
           "handleDeleteEmployeeById",
           this.checkboxEmployeesId
@@ -370,13 +400,23 @@ export default {
      * @param {*} employeeId - Mã nhân viên
      */
     handleDeleteEmployee(employeeId) {
+      // Hiển thị dialog
       ShowQuestion(this.$MISAResource.Delete.deleteOneInfo);
+      // Phát kiểu xóa đến MISADialoQuestion.vue
       this.$msemitter.emit("deleteType", this.$DeleteType.deleteOne);
       // Phát lên "MISADialogQuestion.vue"
       // Thực hiện xóa Phát lên "EmployeeHome.vue"
-      this.$msemitter.emit("handleDeleteEmployeeById", [employeeId]);
+      // this.$msemitter.emit("handleDeleteEmployeeById", [employeeId]);
+      // Phát tín hiệu đến EmployeeHome.vue
+      this.$msemitter.emit("deleteSingleEmployeeId", [employeeId]);
+    },
 
-      // Thông báo: Hỏi người dùng có thực sự muốn xóa Employee đó
+    /**
+     * - Xử lí nút nhân bản
+     * - Author: DDKhang (4/6/2023)
+     */
+    handleDuplicateEmployee(employee) {
+      this.$router.push(`/employee/${employee.EmployeeId}?duplicate=true`);
     },
   },
 };
@@ -393,7 +433,11 @@ export default {
             class="table-header__checkbox sticky-column-thead1 checkbox-item"
             style="min-width: 50px; background-color: #f2f2f2; z-index: 2"
           >
-            <input type="checkbox" @click="handleCheckAll" />
+            <input
+              style="accent-color: #23a623"
+              type="checkbox"
+              @click="handleCheckAll"
+            />
           </th>
           <th
             class="sticky-column-thead2"
@@ -451,12 +495,8 @@ export default {
             <input
               @dblclick.stop
               type="checkbox"
-              style="cursor: pointer"
-              :checked="
-                this.isCheckedAll
-                  ? this.isCheckedAll
-                  : checkboxEmployeesId.includes(employee.EmployeeId) // Thực hiện checked records cho trang trước đó
-              "
+              style="cursor: pointer; accent-color: #23a623"
+              :checked="checkboxEmployeesId.includes(employee.EmployeeId)"
               @change="handleChangeInputCheckbox(employee)"
             />
           </td>
@@ -469,7 +509,7 @@ export default {
           <td>{{ employee.IdentityNumber }}</td>
           <td></td>
           <td>MISA</td>
-          <td>{{ employee.bankInfo?.AccountNumber }}</td>
+          <td>{{ employee?.AccountNumber }}</td>
           <td>{{ employee.bankInfo?.BankName }}</td>
           <td style="width: 150px">{{ employee.bankInfo?.Branch }}</td>
           <td
@@ -499,6 +539,7 @@ export default {
               >
                 <i class="fas fa-ellipsis-h"></i>
               </button>
+              <!-- Thực hiện xử lí hiển thị popup -->
               <div
                 :class="[
                   'main__table-info-icon-option-items',
@@ -513,7 +554,10 @@ export default {
                 ]"
                 v-show="isShowContentOption[index]"
               >
-                <div class="main__table-info-icon-option-item">
+                <div
+                  class="main__table-info-icon-option-item"
+                  @click="handleDuplicateEmployee(employee)"
+                >
                   {{
                     this.$MISAResource.EmployeeList.btnOption.btnDuplicate.text
                   }}

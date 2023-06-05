@@ -1,3 +1,5 @@
+import MISAEnum from "./MISAEnum";
+
 const MISAResource = {
   textError: {
     textErrorRequired: "Vui lòng nhập thông tin!",
@@ -12,6 +14,27 @@ const MISAResource = {
   Delete: {
     deleteManyInfo: "Bạn có muốn xóa các nhân viên đó?",
     deleteOneInfo: "Bạn có muốn xóa nhân viên đó?",
+  },
+
+  Toast: {
+    AddEntity: {
+      AddSuccess: {
+        status: MISAEnum.HttpStatusCode.Success,
+        msg: "Đã thêm!",
+      },
+    },
+    UpdateEntity: {
+      UpdateSuccess: {
+        status: MISAEnum.HttpStatusCode.Success,
+        msg: "Đã cập nhật!",
+      },
+    },
+    DeleteEntity: {
+      DeleteSuccess: {
+        status: MISAEnum.HttpStatusCode.Success,
+        msg: "Đã xóa!",
+      },
+    },
   },
 
   ButtonText: {
@@ -72,6 +95,7 @@ const MISAResource = {
     title: {
       tableName: "Nhân viên",
     },
+    qualityRecordText: "Số bản ghi đã chọn:",
     button: {
       btnAddNewEmployee: "Thêm mới nhân viên",
       btnDeleteCheckedEmployee: "Xóa bản ghi đã chọn",

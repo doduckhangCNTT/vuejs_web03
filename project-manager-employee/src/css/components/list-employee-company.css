@@ -274,6 +274,10 @@
   align-items: center;
 }
 
+.main__table-qualityRecordChoose {
+  font-size: 14px;
+}
+
 .main__table-handleOnTable-search {
 }
 

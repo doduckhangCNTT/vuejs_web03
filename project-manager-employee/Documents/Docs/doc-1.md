@@ -74,3 +74,17 @@
 - Lí do: Do việc bất đồng bộ do việc gọi dữ liệu qua api
 - Cách xử lí:
     + Trong `MISACombobox.vue` thì trong hàm `watch` thì thực hiện theo dõi dữ `listItemValue` (chứa dữ liệu lấy từ api) thì khi dữ liệu được lấy thì cập nhật lại và hiển thị dữ liệu đó lên giao diện
+    
+    
+## Thực hiện "Button Nhân bản"
+- **Ý tưởng**: Khi nhấn nút nhân bản thì cần đẩy toàn bộ thông tin bản ghi muốn nhân bản đó lên và thực hiện `thêm` thông tin đó
+- **Cách làm**: 
+    + B1: Thực hiện giống việc update chỉ khác là gọi đến đường dẫn url kiểu khác
+        > + update: "localhost:3000/employee/123-234-abc-a12"  
+        > + duplicate: "localhost:3000/employee/123-234-abc-a12?duplicate=true"
+    + B2: Thực hiện trong `computed` để tính toán xử lí các hành vi (AddNew, Edit, Duplicate)
+    + B3: Do chỉ khác nhau chỗ query giá trị của employeeId đó vẫn sẽ được map vào form như update
+        + Thực hiện cập nhật mã nhân viên mới bằng cách gọi api lấy mã nhân viên mới và cập nhật
+    + Khi bấm nút `Cất và Thêm` thì cần xử lí các hành vi (AddNew, Edit, Duplicate) thực hiện 
+        + Sau đó cập nhật thông tin mã nhân viên mới để cho form sau 
+        + Chuyển đường dẫn url sang đường dẫn tương ứng với Add || Duplicate 

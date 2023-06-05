@@ -5,9 +5,11 @@ export default {
   name: "MISACombobox",
   props: {
     customClass: {
+      // Class tùy chỉnh
       type: Object,
     },
     placeholderInput: {
+      // gợi ý cho thẻ input
       type: String,
       default: "-- Chọn giá trị --",
     },
@@ -45,6 +47,10 @@ export default {
     };
   },
   watch: {
+    /**
+     * - Des: Theo dõi sự thay đổi của danh sách dữ liệu truyền vào
+     * - Author: DDKhang (5/6/2023)
+     */
     listItemValue: {
       handler(newVal) {
         this.listItem = newVal;
@@ -52,6 +58,10 @@ export default {
       immediate: true,
     },
 
+    /**
+     * - Des: Theo dõi sự thay đổi của giá trị mặc định cho combobox
+     * - Author: DDKhang (5/6/2023)
+     */
     defaultValueInput: {
       handler(newVal) {
         // Cần phải kiểm tra xem có giá trị defaul bởi khi thực hiện "Thêm" thì khi nhấn sang, thực hiện trên input datetime, radio... thì dẫn đến giá trị trên input checkbox thành undifined
@@ -295,7 +305,11 @@ export default {
       <input
         ref="inputField"
         type="text"
-        :class="['inputCombobox input-press', this.customClass?.widthInput]"
+        :class="[
+          'inputCombobox input-press',
+          this.customClass?.widthInput,
+          this.customClass?.borderRight,
+        ]"
         :placeholder="this.placeholderInput"
         :required="this.required"
         :value="this.value.value"
@@ -310,6 +324,7 @@ export default {
           'comboboxNew__content--icon',
           this.customClass?.borderLeftNone,
           this.customClass?.backgroundWhite,
+          this.customClass?.hiddenArrow,
         ]"
         @click="handleFocusInput"
       >
@@ -483,8 +498,20 @@ export default {
 .width-200 {
   width: 420px;
 }
+.width-250 {
+  width: 250px;
+}
 .width-full {
   width: 100%;
+}
+
+.hidden-arrow {
+  display: none;
+}
+
+.border-right {
+  border-right: 1px solid #e6e6e6 !important;
+  border-radius: 4px !important;
 }
 
 .backgroundColor--white {

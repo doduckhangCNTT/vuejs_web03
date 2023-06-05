@@ -4,6 +4,7 @@ import TheMain from "./layouts/TheMain.vue";
 import TheNavbar from "./layouts/TheNavbar.vue";
 import MISADialogNotification from "./components/MISADialogNotification.vue";
 import MISADialogQuestion from "./components/MISADialogQuestion.vue";
+import MISAToast from "./components/MISAToast.vue";
 
 export default {
   name: "App",
@@ -13,11 +14,13 @@ export default {
     TheNavbar,
     MISADialogNotification,
     MISADialogQuestion,
+    MISAToast,
   },
   props: [],
   created() {
     this.$msemitter.on("showNotice", this.showNotice);
     this.$msemitter.on("showQuestion", this.showQuestion);
+    this.$msemitter.on("showToast", this.showToast);
     this.$msemitter.on("closeDialogNotice", this.closeDialogNotice);
     this.$msemitter.on("closeDialogQuestion", this.closeDialogQuestion);
   },
@@ -71,11 +74,20 @@ export default {
     closeDialogQuestion() {
       this.isShowQuestion = false;
     },
+
+    /**
+     * - Des: Thực hiện hiển thị Toast
+     * - Author: DDKhang (2/6/2023)
+     */
+    showToast(toastInfo, duration = 5000) {
+      this.$refs.toast.showToast(toastInfo, duration);
+    },
   },
 };
 </script>
 
 <template>
+  <MISAToast ref="toast"></MISAToast>
   <div class="list-employee">
     <TheNavbar />
     <div class="container">
