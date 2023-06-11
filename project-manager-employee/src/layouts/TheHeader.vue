@@ -1,16 +1,12 @@
 <script>
-import { showCombobox } from "../functions/Combobox";
 import MISACombobox from "../components/MISACombobox.vue";
 
 export default {
   name: "TheHeader",
   methods: {
-    handlePressCombobox() {
-      showCombobox();
-    },
-    handleToggleNavbar() {
-      document.querySelector(".navbar").classList.toggle("hidden");
-    },
+    // handleToggleNavbar() {
+    //   document.querySelector(".navbar").classList.toggle("hidden");
+    // },
   },
   data() {
     return {
@@ -43,10 +39,7 @@ export default {
 <template>
   <div class="header">
     <div class="header__company">
-      <div
-        class="header-icon--hamburger"
-        @click="this.handleToggleNavbar()"
-      ></div>
+      <div class="header-icon--hamburger"></div>
       <div class="header__company-info">
         <MISACombobox
           :customClass="this.handleCustomClassCombobox()"
@@ -86,7 +79,7 @@ export default {
       <div class="header__notifications"></div>
       <div class="header__personal-info">
         <div class="header__personal-info-avatar"></div>
-        <p class="header__personal-info-username">User Name</p>
+        <p class="header__personal-info-username">Đỗ Đức Khang</p>
       </div>
     </div>
   </div>

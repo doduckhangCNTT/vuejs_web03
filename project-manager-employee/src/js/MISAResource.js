@@ -2,7 +2,8 @@ import MISAEnum from "./MISAEnum";
 
 const MISAResource = {
   textError: {
-    textErrorRequired: "Vui lòng nhập thông tin!",
+    textErrorRequired: "không được để trống",
+    textErrorRequiredUnit: "Đơn vị không được để trống",
   },
 
   textCRUD: {
@@ -12,8 +13,14 @@ const MISAResource = {
   },
 
   Delete: {
-    deleteManyInfo: "Bạn có muốn xóa các nhân viên đó?",
-    deleteOneInfo: "Bạn có muốn xóa nhân viên đó?",
+    deleteManyInfo: "Bạn có muốn xóa các nhân viên đã chọn đó?",
+    deleteOneInfo: "Bạn có muốn xóa nhân viên đã chọn?",
+  },
+
+  Validate: {
+    textCheckEmail: "Email không hợp lệ",
+    textCheckDateOfBirth: "Ngày sinh cần nhỏ hơn ngày hiện tại",
+    textCheckExistEmployeeCode: "Mã nhân viên đã tồn tại!",
   },
 
   Toast: {
@@ -34,14 +41,35 @@ const MISAResource = {
         status: MISAEnum.HttpStatusCode.Success,
         msg: "Đã xóa!",
       },
+      DeleteError: {
+        status: MISAEnum.HttpStatusCode.ServerError,
+        msg: "Có lỗi xảy ra vui lòng liên hệ MISA để được trợ giúp!",
+      },
+    },
+    Server: {
+      Error: {
+        status: MISAEnum.HttpStatusCode.ServerError,
+        msg: "Có lỗi xảy ra vui lòng liên hệ MISA để được trợ giúp!",
+      },
     },
   },
 
   ButtonText: {
+    dialogQuestionChangeValue: {
+      title: "Dữ liệu đã thay đổi",
+      btnClose: "Đóng",
+      btnSave: "Lưu",
+      btnNotSave: "Không lưu",
+    },
     dialogQuestion: {
       title: "Thông báo",
       btnCancel: "Không",
-      btnAgree: "Có, xóa nhân viên",
+      btnAgree: "Có",
+    },
+    dialogNotice: {
+      title: "Thông báo",
+      btnCancel: "Không",
+      btnAgree: "Đồng ý",
     },
     formInfoEmployee: {
       btnCancel: "Hủy",
@@ -95,9 +123,9 @@ const MISAResource = {
     title: {
       tableName: "Nhân viên",
     },
-    qualityRecordText: "Số bản ghi đã chọn:",
+    qualityRecordText: "Đã chọn",
     button: {
-      btnAddNewEmployee: "Thêm mới nhân viên",
+      btnAddNewEmployee: "Thêm mới",
       btnDeleteCheckedEmployee: "Xóa bản ghi đã chọn",
       btnRefresh: {
         tooltip: "Làm mới",
@@ -185,6 +213,11 @@ const MISAResource = {
       },
       bankName: { text: "Tên ngân hàng", tooltip: "" },
       branch: { text: "Chi nhánh", tooltip: "" },
+    },
+    titleInputRequired: {
+      fullName: "Tên",
+      employeeCode: "Mã nhân viên",
+      unit: "Đơn vị",
     },
   },
 

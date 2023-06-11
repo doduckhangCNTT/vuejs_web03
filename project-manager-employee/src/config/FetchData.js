@@ -70,17 +70,29 @@ export async function getDataById(entityName, id) {
  * - Created By: DDKhang (27/5/2023)
  */
 export async function updateInfoEntity(entityId, entityName, entity) {
-  axios
-    .put(`${BaseUrl}/${entityName}/${entityId}`, entity)
-    .then((res) => {
-      return {
-        response: res,
-        status: MISAEnum.HttpStatusCode.Success,
-      };
-    })
-    .catch((err) => {
-      CatchError(err);
-    });
+  // axios
+  //   .put(`${BaseUrl}/${entityName}/${entityId}`, entity)
+  //   .then((res) => {
+  //     return {
+  //       response: res,
+  //       status: MISAEnum.HttpStatusCode.Success,
+  //     };
+  //   })
+  //   .catch((err) => {
+  //     CatchError(err);
+  //   });
+  try {
+    const res = await axios.put(`${BaseUrl}/${entityName}/${entityId}`, entity);
+    return {
+      response: res,
+      status: MISAEnum.HttpStatusCode.Success,
+    };
+  } catch (error) {
+    CatchError(error);
+    return {
+      status: MISAEnum.HttpStatusCode.ServerError,
+    };
+  }
 }
 
 /**
@@ -90,17 +102,28 @@ export async function updateInfoEntity(entityId, entityName, entity) {
  * - Created By: DDKhang (27/5/2023)
  */
 export async function postInfoEntity(entityName, entity) {
-  axios
-    .post(`${BaseUrl}/${entityName}`, entity)
-    .then((res) => {
-      return {
-        response: res,
-        status: this.$MISAEnum.HttpStatusCode.Success,
-      };
-    })
-    .catch((err) => {
-      CatchError(err);
-    });
+  // axios
+  //   .post(`${BaseUrl}/${entityName}`, entity)
+  //   .then((res) => {
+  //     return {
+  //       response: res,
+  //       status: MISAEnum.HttpStatusCode.Success,
+  //     };
+  //   })
+  //   .catch((err) => {
+  //     CatchError(err);
+  //   });
+
+  try {
+    const res = await axios.post(`${BaseUrl}/${entityName}`, entity);
+    console.log("Res: ", res);
+    return {
+      response: res,
+      status: MISAEnum.HttpStatusCode.Success,
+    };
+  } catch (error) {
+    CatchError(error);
+  }
 }
 
 /**
@@ -114,16 +137,16 @@ export async function filterInfoEntity(entityName, entityFilter = null) {
   let query = "";
   if (entityFilter !== null) {
     const { pageSize, pageNumber, valueFilter } = entityFilter;
-    if (valueFilter !== null) {
+    if (pageSize == null && pageNumber == null) {
+      query = `entityFilter=${valueFilter}`;
+    } else if (valueFilter !== null) {
       query = `pageSize=${pageSize}&pageNumber=${pageNumber}&entityFilter=${valueFilter}`;
     } else {
       query = `pageSize=${pageSize}&pageNumber=${pageNumber}`;
     }
   }
 
-  const res = await getData(
-    `${BaseUrl}/${entityName}/filter?${query ? query : ""}`
-  );
+  const res = await getData(`${BaseUrl}/${entityName}/filter?${query}`);
   return res;
 }
 
@@ -135,17 +158,19 @@ export async function filterInfoEntity(entityName, entityFilter = null) {
  * - Created By: DDKhang (27/5/2023)
  */
 export async function deleteMultiple(entityName, listEntityId) {
-  axios
-    .delete(
+  try {
+    const res = await axios.delete(
       `${BaseUrl}/${entityName}/delete-multiple?listEntityId=${listEntityId}`
-    )
-    .then((res) => {
-      return {
-        response: res,
-        status: MISAEnum.HttpStatusCode.Success,
-      };
-    })
-    .catch((err) => {
-      CatchError(err);
-    });
+    );
+    return res;
+  } catch (error) {
+    CatchError(error);
+  }
+  // .then((res) => {
+  //   console.log("Response Delete: ", res);
+  //   return res;
+  // })
+  // .catch((err) => {
+  //   CatchError(err);
+  // });
 }

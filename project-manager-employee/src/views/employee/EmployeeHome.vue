@@ -49,6 +49,8 @@ export default {
       "handleDeleteEmployeeById",
       this.handleDeleteEmployeeById
     );
+    // Lắng nghe từ EmployeeList.vue
+    this.$msemitter.on("handleSearch", this.handleSearchEmployee);
     // Nhận tính hiệu xóa một từ EmployeeList.vue
     this.$msemitter.on("deleteSingleEmployeeId", this.deleteOneEmployeeId);
     // Nhận tín hiệu đóng "MISADialogQuestion.vue" xóa employee
@@ -62,6 +64,7 @@ export default {
   beforeUnmount() {
     window.removeEventListener("keydown", this.handleKeyDown);
   },
+  watch: {},
   methods: {
     /**
      *
@@ -92,7 +95,7 @@ export default {
      * CreateAt: 8/5/2023
      * ModifierAt: 8/5/2023
      */
-    statusDeleteEmployee(infoDelete) {
+    async statusDeleteEmployee(infoDelete) {
       // - status: Trạng thái có hoặc không xóa
       // - deleteType: Kiểu muốn xóa (một, nhiều)
       const { status, deleteType } = infoDelete;
@@ -102,19 +105,27 @@ export default {
           const listEntityId = this.checkboxListEmployeeId.toString();
           if (status) {
             // Thực hiện xóa những employee đã chọn, khi bấm "Có" trên dialog
-            deleteMultiple(this.$EntityEnum.Employees, listEntityId);
+            const numberDeleted = await deleteMultiple(
+              this.$EntityEnum.Employees,
+              listEntityId
+            );
             // Cập nhật lại danh sách employee sẽ xóa => ẩn nút "Delete"
             this.checkboxListEmployeeId = [];
 
-            // Thực hiện thông báo
-            // 1. Thông tin thông báo
-            const toastInfo = {
-              status:
-                this.$MISAResource.Toast.DeleteEntity.DeleteSuccess.status,
-              msg: this.$MISAResource.Toast.DeleteEntity.DeleteSuccess.msg,
-            };
-            // 2. Phát lên App.vue -> để hiển thị Toast
-            this.$msemitter.emit("showToast", toastInfo);
+            if (
+              numberDeleted.status === this.$MISAEnum.HttpStatusCode.NoContent
+            ) {
+              this.handleRefreshBtn();
+              // Thực hiện thông báo
+              // 1. Thông tin thông báo
+              const toastInfo = {
+                status:
+                  this.$MISAResource.Toast.DeleteEntity.DeleteSuccess.status,
+                msg: this.$MISAResource.Toast.DeleteEntity.DeleteSuccess.msg,
+              };
+              // 2. Phát lên App.vue -> để hiển thị Toast
+              this.$msemitter.emit("showToast", toastInfo);
+            }
           }
           break;
         case this.$DeleteType.deleteOne:
@@ -128,19 +139,28 @@ export default {
 
             // const listEntityId = this.checkboxListEmployeeId.toString();
             const listEntityId = this.deleteSingleEmployeeId.toString();
-            deleteMultiple(this.$EntityEnum.Employees, listEntityId);
-          }
-          // Cập nhật lại danh sách employee sẽ xóa => ẩn nút "Delete"
-          // this.checkboxListEmployeeId = [];
+            const numberDeleted = await deleteMultiple(
+              this.$EntityEnum.Employees,
+              listEntityId
+            );
+            this.handleRefreshBtn();
+            if (
+              numberDeleted.status === this.$MISAEnum.HttpStatusCode.NoContent
+            ) {
+              // Cập nhật lại danh sách employee sẽ xóa => ẩn nút "Delete"
+              this.checkboxListEmployeeId = [];
 
-          // Thực hiện thông báo
-          // 1. Thông tin thông báo
-          const toastInfo = {
-            status: this.$MISAResource.Toast.DeleteEntity.DeleteSuccess.status,
-            msg: this.$MISAResource.Toast.DeleteEntity.DeleteSuccess.msg,
-          };
-          // 2. Phát lên App.vue -> để hiển thị Toast
-          this.$msemitter.emit("showToast", toastInfo);
+              // Thực hiện thông báo
+              // 1. Thông tin thông báo
+              const toastInfo = {
+                status:
+                  this.$MISAResource.Toast.DeleteEntity.DeleteSuccess.status,
+                msg: this.$MISAResource.Toast.DeleteEntity.DeleteSuccess.msg,
+              };
+              // 2. Phát lên App.vue -> để hiển thị Toast
+              this.$msemitter.emit("showToast", toastInfo);
+            }
+          }
           break;
         default:
           break;
@@ -190,7 +210,7 @@ export default {
      * ModifierAt: 30/4/2023
      */
     handleRefreshBtn() {
-      this.$msemitter.emit("refresh"); // EmployeeList
+      this.$msemitter.emit("refresh"); // EmployeeList.vue
       this.textSearch = "";
     },
 
@@ -254,44 +274,47 @@ export default {
      * ModifierAt: 30/4/2023
      */
     async handleSearchEmployee(event) {
-      event.preventDefault();
+      event?.preventDefault();
 
-      let { page, limit } = this.$route.query;
-      if (!page) page = 1;
+      let { page, limit, search } = this.$route.query;
       if (!limit) limit = 20;
+      /**
+       * - Nếu ban đầu next page trước khi search thì khi này giá trị page sẽ được cập nhật
+       * - Để khi search cho thể lấy được giá trị thì cần bắt đầu từ trang 1
+       */
+      page = 1;
 
-      // // Lấy giá trị hiện tại của URL
-      // const currentParams = this.$route.query;
-      // // Thêm tham số tìm kiếm mới vào đối tượng params
-      // const newParams = { ...currentParams, search: "abc" };
-      // // Sử dụng $router.push để điều hướng và cập nhật URL với tham số tìm kiếm mới
-      // this.$router.push({ query: newParams });
+      // Lấy giá trị hiện tại của URL
+      const currentParams = this.$route.query;
+      // Thêm tham số tìm kiếm mới vào đối tượng params
+      // const newParams = { search: this.textSearch || search };
+      const newParams = { search: this.textSearch || search };
+      // Sử dụng $router.push để điều hướng và cập nhật URL với tham số tìm kiếm mới
+      this.$router.push({ query: newParams });
 
+      // if (this.textSearch.trim() === "" && search === "") {
       if (this.textSearch.trim() === "") {
         this.$msemitter.emit("refresh");
       } else {
         const entityFilter = {
-          pageSize: limit,
-          pageNumber: page,
-          valueFilter: this.textSearch,
+          pageSize: null,
+          pageNumber: null,
+          valueFilter: this.textSearch || search,
         };
         const res = await filterInfoEntity(
           this.$EntityEnum.Employees,
           entityFilter
         );
+        // Phát đến EmployeeList.vue & EmployeeHomeFooter.vue
         this.$msemitter.emit("listEmployeeSearch", res.data.Data);
+        this.textSearch = "";
       }
-
-      // this.$axios
-      //   .get(`${BaseUrl}/Employees/filter?entityFilter=${this.textSearch}`)
-      //   .then((res) => {
-      //     this.$msemitter.emit("listEmployeeSearch", res.data.Data);
-      //   })
-      //   .catch((err) => {
-      //     console.log(err);
-      //   });
     },
 
+    /**
+     * - Hiển thị toast
+     * - Author: DDKhang (6/6/2023)
+     */
     showToast() {
       let number = this.numberValue++;
       this.$refs.toast.showToast("Hello, this is a toast!" + number, 5000);
@@ -307,136 +330,105 @@ export default {
       {{ this.$MISAResource.EmployeeHome.title.tableName }}
     </div>
 
-    <!-- <el-select
-      v-model="value"
-      multiple
-      filterable
-      allow-create
-      default-first-option
-      :reserve-keyword="false"
-      placeholder="Choose tags for your article"
-    >
-      <el-option
-        v-for="item in this.options"
-        :key="item.value"
-        :label="item.label"
-        :value="item.value"
-      />
-    </el-select> -->
-
+    <!-- Nút thêm mới nhân viên -->
     <MISAButton
       id="btn-add-employee"
       class="main__top-add-employee btn__primary btn-hover btn-pressed"
       @click="handleClickShowFormEmployee"
       :title="this.$ShortCutResource.BtnAdd.tooltip"
     >
-      {{ this.$MISAResource.EmployeeHome.button.btnAddNewEmployee }}
+      <div class="content">
+        <div class="icon">
+          <i class="fal fa-plus" style="color: #ffffff; font-size: 20px"></i>
+        </div>
+        <div class="text">
+          {{ this.$MISAResource.EmployeeHome.button.btnAddNewEmployee }}
+        </div>
+      </div>
     </MISAButton>
-
-    <!-- <button
-      @click="handleClickShowFormEmployee"
-      id="btn-add-employee"
-      class="main__top-add-employee btn__primary btn-hover btn-pressed"
-      title="Ctrl + a"
-    >
-      {{ this.$MISAResource.EmployeeHome.button.btnAddNewEmployee }}
-    </button> -->
 
     <!-- FORM ADD EMPLOYEE -->
     <!-- <EmployeeForm /> -->
     <router-view name="EmployeeRouterView"></router-view>
-
-    <!-- DIALOG -->
-    <!-- <div id="dialog" class="dialog hidden dialog-close">
-      <div class="dialog-warning">
-        <div class="dialog-warning__notification">
-          <div class="dialog-warning__icon">
-            <i class="fas fa-exclamation-triangle"></i>
-          </div>
-          <div class="dialog-warning__content">
-            Mỗi dialog nên thể hiện cho 1 hành động duy nhất, với 1 chuỗi các
-            hành động, nên xem xét việc dùng Popup với các bước riêng biệt.
-          </div>
-        </div>
-        <div class="dialog-warning__notification--footer">
-          <button
-            id="btn-agree"
-            class="dialog-btn--close dialog__button-ok btn__primary btn-hover btn-pressed"
-          >
-            Đồng ý
-          </button>
-        </div>
-      </div>
-    </div> -->
   </div>
   <!-- Main top -- End -->
 
   <div class="main__table">
     <div class="main__table-handleOnTable">
-      <div
-        class="main__table-qualityRecordChoose"
-        v-if="this.checkboxListEmployeeId.length > 0"
-      >
-        {{ this.$MISAResource.EmployeeHome.qualityRecordText }}
-        {{ this.checkboxListEmployeeId.length }}
-      </div>
-      <MISAButton
-        id="btn-add-employee"
-        class="main__top-add-employee btn__delete btn-delete-hover"
-        @click="handleDeleteEmployees"
-        v-if="this.checkboxListEmployeeId.length > 0"
-      >
-        {{ this.$MISAResource.EmployeeHome.button.btnDeleteCheckedEmployee }}
-      </MISAButton>
-      <!-- <button
-        id="btn-add-employee"
-        class="main__top-add-employee btn__delete btn-delete-hover"
-        @click="handleDeleteEmployees"
-        v-if="this.checkboxListEmployeeId.length > 0"
-      >
-        {{ this.$MISAResource.EmployeeHome.button.btnDeleteCheckedEmployee }}
-      </button> -->
-
-      <!-- Search & Refresh - Start -->
-      <form
-        @submit.prevent="handleSearchEmployee"
-        class="main__table-handleOnTable-search"
-      >
-        <div class="textfield-outline">
-          <div class="textfield-validate input-hover">
-            <input
-              class="textfield-validate__placeholder input-hover"
-              type="text"
-              :placeholder="
-                this.$MISAResource.EmployeeHome.input.searchPlaceholder
-              "
-              v-model="this.textSearch"
-            />
-            <button
-              type="submit"
-              class="textfield-validate__icon"
-              :title="this.$MISAResource.EmployeeHome.button.btnSearch.tooltip"
-            >
-              <div class="textfield-validate__icon-search"></div>
-            </button>
-          </div>
+      <div class="main__table-qualityRecordChoose">
+        <div
+          class="showQualityRecordChoose"
+          v-if="this.checkboxListEmployeeId.length > 0"
+        >
+          {{ this.$MISAResource.EmployeeHome.qualityRecordText }}
+          <span class="numberRecorderChoose">{{
+            this.checkboxListEmployeeId.length
+          }}</span>
         </div>
-      </form>
 
-      <div
-        class="icon-refresh"
-        @click="handleRefreshBtn"
-        :title="this.$MISAResource.EmployeeHome.button.btnRefresh.tooltip"
-      >
-        <div class="main__table-handleOnTable-refresh"></div>
+        <!-- Nút xóa những bản ghi đã được chọn -->
+        <!-- <MISAButton
+          id="btn-add-employee"
+          class="main__top-add-employee btn__delete btn-delete-hover"
+          @click="handleDeleteEmployees"
+          v-if="this.checkboxListEmployeeId.length > 0"
+        >
+          {{ this.$MISAResource.EmployeeHome.button.btnDeleteCheckedEmployee }}
+        </MISAButton> -->
+
+        <div
+          class="delete-all"
+          @click="handleDeleteEmployees"
+          v-if="this.checkboxListEmployeeId.length > 0"
+        >
+          Xóa tất cả
+        </div>
       </div>
 
-      <div
-        class="icon-exportExcel"
-        @click="handleExportExcelBtn"
-        :title="this.$MISAResource.EmployeeHome.button.btnExportExcel.tooltip"
-      >
-        <div class="main__table-handleOnTable-exportExcel"></div>
+      <div class="main__table-handleOnTable-base">
+        <!-- Search & Refresh - Start -->
+        <form
+          @submit.prevent="handleSearchEmployee"
+          class="main__table-handleOnTable-search"
+        >
+          <div class="textfield-outline">
+            <div class="textfield-validate input-hover">
+              <input
+                class="textfield-validate__placeholder input-hover"
+                type="text"
+                :placeholder="
+                  this.$MISAResource.EmployeeHome.input.searchPlaceholder
+                "
+                v-model="this.textSearch"
+              />
+              <button
+                type="submit"
+                class="textfield-validate__icon"
+                :title="
+                  this.$MISAResource.EmployeeHome.button.btnSearch.tooltip
+                "
+              >
+                <div class="textfield-validate__icon-search"></div>
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <div
+          class="icon-refresh"
+          @click="handleRefreshBtn"
+          :title="this.$MISAResource.EmployeeHome.button.btnRefresh.tooltip"
+        >
+          <div class="main__table-handleOnTable-refresh"></div>
+        </div>
+
+        <div
+          class="icon-exportExcel"
+          @click="handleExportExcelBtn"
+          :title="this.$MISAResource.EmployeeHome.button.btnExportExcel.tooltip"
+        >
+          <div class="main__table-handleOnTable-exportExcel"></div>
+        </div>
       </div>
     </div>
     <!-- Search & Refresh - End -->

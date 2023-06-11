@@ -131,7 +131,7 @@ export default {
   beforeUpdate() {
     // Thực hiện xóa class "invalid" khỏi thẻ input khi thay đổi giá trị trên input
     // Khi giá trị của combobox "được chọn" thì thực hiện xóa class "invalid", nếu cung cấp thông tin sai thì báo lỗi
-    if (this.value.id) {
+    if (this.value?.id) {
       const tagCurrent = this.$refs.inputField;
       this.removeInvalidInputForm(tagCurrent);
     }
@@ -225,7 +225,11 @@ export default {
      */
     handleEnterKey(event) {
       if (event.key === "Enter" && this.selectedIndex !== -1) {
-        this.handleListItemClick(this.item, this.selectedIndex);
+        // Thực hiện lấy giá trị trong input combobox
+        const newItem = { ...this.item, value: this.$refs.inputField.value };
+        console.log("New Item: ", { item: this.item, newItem });
+        // this.handleListItemClick(this.item, this.selectedIndex);
+        this.handleListItemClick(newItem, this.selectedIndex);
       }
     },
 
@@ -281,7 +285,7 @@ export default {
           tagParent.classList.add("invalid");
           tagCurrent.setAttribute(
             "title",
-            this.$MISAResource.textError.textErrorRequired
+            this.$MISAResource.textError.textErrorRequiredUnit
           );
         } else {
           // Tham chieu len thẻ cha (".formGroup")
@@ -312,13 +316,15 @@ export default {
         ]"
         :placeholder="this.placeholderInput"
         :required="this.required"
-        :value="this.value.value"
+        :value="this.value?.value"
         @keydown="handleListItemKey"
         @keyup.enter="handleEnterKey"
         :tabindex="this.tabindex"
         @blur="this.handleInputRequired"
         tabindex="0"
       />
+      <small class="form-message--error"></small>
+
       <div
         :class="[
           'comboboxNew__content--icon',

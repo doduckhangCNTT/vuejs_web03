@@ -20,6 +20,14 @@ export default {
       type: Boolean,
       default: false,
     },
+    readonly: {
+      type: Boolean,
+      default: false,
+    },
+    name: {
+      type: String,
+      default: "",
+    },
   },
   emits: ["update:employeeCode"],
   data() {
@@ -82,44 +90,40 @@ export default {
       // Kiểm tra input có yêu cầu "required"
       if (this.required) {
         const tagCurrent = this.$refs.refInput;
-        const value = tagCurrent.value;
+        const value = tagCurrent?.value;
         if (!value) {
           // Tham chieu len thẻ cha (".formGroup")
-          const tagParent = tagCurrent.closest(".form-group");
+          const tagParent = tagCurrent?.closest(".form-group");
           tagParent.classList.add("invalid");
           tagCurrent.setAttribute(
             "title",
-            this.$MISAResource.textError.textErrorRequired
+            tagCurrent.getAttribute("field-label") +
+              " " +
+              this.$MISAResource.textError.textErrorRequired
           );
 
           // Tham chiếu đến thẻ con (small hiển thị lỗi)
-          // const smallMessageError = tagParent.querySelector(
-          //   ".form-message--error small"
-          // );
-          // if (smallMessageError) {
-          //   // smallMessageError.style.display = "block";
-          //   smallMessageError.innerHTML =
-          //     this.$MISAResource.textError.textErrorRequired;
-          // }
+          const smallMessageError = tagCurrent.nextElementSibling;
+
+          if (smallMessageError) {
+            // smallMessageError.style.display = "block";
+            smallMessageError.innerHTML =
+              tagCurrent.getAttribute("field-label") +
+              " " +
+              this.$MISAResource.textError.textErrorRequired;
+          }
         } else {
           // Tham chieu len thẻ cha (".formGroup")
           const tagParent = tagCurrent.closest(".form-group");
           tagParent.classList.remove("invalid");
           tagCurrent.setAttribute("title", "");
-
-          // const smallMessageError = tagParent.querySelector(
-          //   ".form-message--error small"
-          // );
-          // if (smallMessageError) {
-          //   smallMessageError.innerHTML = "";
-          // }
+          const smallMessageError = tagCurrent.nextElementSibling;
+          if (smallMessageError) {
+            // smallMessageError.style.display = "none";
+            smallMessageError.innerHTML = "";
+          }
         }
       }
-    },
-
-    handleAutoValue(value) {
-      console.log("Value: ", value);
-      // this.modelValue = value;
     },
   },
   mounted() {
@@ -137,6 +141,7 @@ export default {
 
 <template>
   <input
+    :readonly="this.readonly"
     :value="modelValue"
     @input="$emit('update:modelValue', $event.target.value)"
     ref="refInput"
@@ -144,8 +149,12 @@ export default {
     type="text"
     :required="this.required"
     placeholder=""
+    :name="this.name"
     @blur="this.handleInputRequired"
   />
 </template>
 
-<style lang="scss" scoped></style>
+<style scoped>
+.disabled {
+}
+</style>

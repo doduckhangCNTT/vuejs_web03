@@ -1,12 +1,17 @@
 <script>
 import { updateInfoEntity, postInfoEntity } from "../../config/FetchData";
-import { ShowValidate } from "../../functions/CatchError";
+import {
+  CatchError,
+  ShowQuestion,
+  ShowValidate,
+  ShowQuestionChangeValue,
+} from "../../functions/CatchError";
 import {
   checkBlank,
   checkDuplicateEmployeeCode,
   checkEmail,
+  checkDateOfBirth,
 } from "../../functions/ValidateForm";
-import { showCombobox } from "../../functions/Combobox";
 import MISAInput from "../../components/MISAInput.vue";
 import {
   getNewCode,
@@ -15,6 +20,7 @@ import {
 } from "../../config/FetchData";
 import MISAButton from "../../components/MISAButton.vue";
 import MISACombobox from "../../components/MISACombobox.vue";
+import MISAEnum from "../../js/MISAEnum";
 
 export default {
   name: "EmployeeForm",
@@ -38,6 +44,10 @@ export default {
       cbListDepartment: [], // Danh sách dữ liệu phòng ban cho combobox
       cbListBank: [], // Danh sách dữ liệu ngân hàng cho combobox
       queryUrl: {},
+      employeeBeforeUpdate: {}, // Gía trị nhân viên trước khi cập nhật
+
+      isCloseDialogEventRegistered: false, // Biến cờ để kiểm tra sự kiện đã được đăng ký hay chưa
+      inputsRequired: [],
     };
   },
   async created() {
@@ -52,6 +62,22 @@ export default {
       }
     );
 
+    this.$msemitter.on("closeDialogQuestion", this.closeDialogOnForm);
+    this.$msemitter.on("closeDialogNotice", this.closeDialogNoticeOnForm);
+    // Thực hiện trên dialog thay đổi dữ liệu trên form
+    this.$msemitter.on(
+      "closeDialogQuestionChangeValue",
+      this.statusChangeValueDialogEmployee
+    );
+    // if (!this.isCloseDialogEventRegistered) {
+    //   // Chỉ đăng ký sự kiện khi chưa được đăng ký trước đó
+    //   this.isCloseDialogEventRegistered = true;
+    // }
+
+    // this.$msemitter.on(
+    //   "closeDialogQuestionChangeValue",
+    //   this.statusChangeValueDialogEmployee
+    // );
     await this.handleCustomValueDepartmentCombobox();
     await this.handleCustomValueBankCombobox();
     // Sử dụng tabIndex khi vào form info employee
@@ -81,7 +107,7 @@ export default {
       this.behaviorHandle === this.$BehaviorHandleEnum.Duplicate
     ) {
       /**
-       * - Thực mở form cập nhật thông tin nhân viên
+       * - Thực hiện mở form cập nhật thông tin nhân viên
        * - Lấy thông tin nhân viên theo id -> truyền thông tin nhân viên đó lên form
        */
       if (this.employeeId) {
@@ -91,10 +117,25 @@ export default {
             this.$EntityEnum.Employees,
             this.employeeId
           );
+
           // Khai báo biến tạm cho nhân viên
           let tempEmployee;
-          // 2. Thực hiện cấu trúc lại dateOfBirth theo yyyy-mm-dd
-          this.convertAndSetDate(`${res.data.DateOfBirth}`);
+          // 2. Thực hiện cấu trúc lại dateOfBirth|identityDate theo yyyy-mm-dd
+          const dateOfBirthFormat = this.convertAndSetDate(
+            `${res.data.DateOfBirth}`
+          );
+          const identityDateFormat = this.convertAndSetDate(
+            `${res.data.IdentityDate}`
+          );
+
+          tempEmployee = {
+            ...res.data,
+            DateOfBirth:
+              dateOfBirthFormat === "NaN-NaN-NaN" ? null : dateOfBirthFormat,
+            IdentityDate:
+              identityDateFormat === "NaN-NaN-NaN" ? null : identityDateFormat,
+          };
+
           // 3. Đẩy thông tin lên form
           if (res.data.BankId) {
             // Thực hiện kiểm tra bankId có tồn tại -> Lấy thông tin bank -> ghép vào dữ liệu employee
@@ -104,13 +145,23 @@ export default {
             );
             tempEmployee = {
               ...res.data,
-              DateOfBirth: this.formattedDate,
+              DateOfBirth:
+                dateOfBirthFormat === "NaN-NaN-NaN" ? null : dateOfBirthFormat,
+              IdentityDate:
+                identityDateFormat === "NaN-NaN-NaN"
+                  ? null
+                  : identityDateFormat,
               BankInfo: resBank.data,
             };
           } else {
             tempEmployee = {
               ...res.data,
-              DateOfBirth: this.formattedDate,
+              DateOfBirth:
+                dateOfBirthFormat === "NaN-NaN-NaN" ? null : dateOfBirthFormat,
+              IdentityDate:
+                identityDateFormat === "NaN-NaN-NaN"
+                  ? null
+                  : identityDateFormat,
               BankInfo: {},
             };
           }
@@ -119,13 +170,18 @@ export default {
             // Lấy mã code mới cho nhân viên
             const res = await getNewCode(this.$EntityEnum.Employees);
             // Cập nhật mã code mới
-            this.employee = { ...tempEmployee, EmployeeCode: res.data };
+            const employeeNew = { ...tempEmployee, EmployeeCode: res.data };
+            this.employee = employeeNew;
+            // Lưu giữ giá trị ban đầu -> close Form
+            this.employeeBeforeUpdate = JSON.stringify(employeeNew);
           } else {
             // Giữ nguyên giá trị muốn cập nhật -> đẩy lên form
             this.employee = tempEmployee;
+            // Lưu giữ giá trị ban đầu -> close Form
+            this.employeeBeforeUpdate = JSON.stringify(tempEmployee);
           }
         } catch (error) {
-          console.log(error.message);
+          CatchError(error);
         }
         // Thực hiện lấy thông tin phòng ban theo id
         if (this.employee?.DepartmentId) {
@@ -141,7 +197,7 @@ export default {
             this.department = res.data;
             // this.employee.DepartmentName = res.data.DepartmentName;
           } catch (error) {
-            console.log(error);
+            CatchError(error);
           }
         }
         // Thực hiện lấy thông tin ngân hàng theo id
@@ -153,7 +209,7 @@ export default {
             );
             this.bank = res.data;
           } catch (error) {
-            console.log(error);
+            CatchError(error);
           }
         }
       }
@@ -168,20 +224,24 @@ export default {
       const res = await filterInfoEntity(this.$EntityEnum.Departments);
       this.departments = res.data.Data;
     } catch (error) {
-      console.log(error.message);
+      CatchError(error);
     }
 
     // Thực hiện lấy toàn bộ employees để check mã trùng lặp
-    try {
-      const res = await filterInfoEntity(this.$EntityEnum.Employees);
-      this.employees = res.data.Data;
-    } catch (error) {
-      console.log(error.message);
-    }
+    // try {
+    //   const res = await filterInfoEntity(this.$EntityEnum.Employees);
+    //   this.employees = res.data.Data;
+    // } catch (error) {
+    //   console.log(error.message);
+    // }
   },
   mounted() {
     window.addEventListener("keydown", this.handleKeyDown);
     document.addEventListener("keydown", this.handleTabKey);
+
+    this.handleReferenceInput();
+
+    // this.handleShowValidateInputError();
 
     // // =================== Handel Tab - Start =======================
     // // Lấy toàn bộ những thẻ có thuộc tính "Ref"
@@ -226,24 +286,14 @@ export default {
   beforeUnmount() {
     window.removeEventListener("keydown", this.handleKeyDown);
     document.removeEventListener("keydown", this.handleTabKey);
+
+    this.$msemitter.off("closeDialogQuestion", this.closeDialogOnForm);
+    this.$msemitter.off("closeDialogNotice", this.closeDialogNoticeOnForm);
+    this.$msemitter.off(
+      "closeDialogQuestionChangeValue",
+      this.statusChangeValueDialogEmployee
+    );
   },
-  // beforeUpdate() {
-  //   // Thực hiện xóa class "invalid" khỏi thẻ input khi thay đổi giá trị trên đó
-  //   if (this.employee.FullName) {
-  //     const tagCurrent = this.$refs.inputFullName;
-  //     this.removeInvalidInputForm(tagCurrent);
-  //   }
-
-  //   // if (this.employee.EmployeeCode) {
-  //   //   const tagCurrent = this.$refs.textCodeEmployee;
-  //   //   this.removeInvalidInputForm(tagCurrent);
-  //   // }
-
-  //   if (this.employee.DepartmentId) {
-  //     const tagCurrent = this.$refs.comboboxDepartment;
-  //     this.removeInvalidInputForm(tagCurrent);
-  //   }
-  // },
   watch: {
     /**
      * @param {*} newValue - giá trị mới
@@ -289,6 +339,18 @@ export default {
   },
 
   computed: {
+    handleChange() {
+      const keysEmployeeOld = Object.keys(this.employeeBeforeUpdate);
+      for (let key = 0; key < keysEmployeeOld.length; key++) {
+        const keyEntity = keysEmployeeOld[key];
+        if (
+          JSON.stringify(this.employee[keyEntity]) !==
+          JSON.stringify(this.employeeBeforeUpdate[keyEntity])
+        ) {
+          return true;
+        }
+      }
+    },
     /**
      * Params:
      * Des:  Tính toán thêm hoặc cập nhật
@@ -429,6 +491,47 @@ export default {
     // },
 
     /**
+     * - Des: Thực hiện đóng form thông tin
+     * - Author: DDKhang (24/5/2023)
+     */
+    closeDialogOnForm(infoStatus) {
+      if (infoStatus.status) {
+        this.$router.push("/employee");
+      }
+    },
+
+    /**
+     * - Thực hiện đóng dialog notice
+     * - Author: DDKhang (10/6/2023)
+     */
+    closeDialogNoticeOnForm() {
+      // Thực hiện focus vào thẻ input lỗi đầu tiên
+      this.handleShowValidateInputError();
+    },
+
+    /**
+     * - Thực hiện đóng dialog thay đổi dữ liệu trên form
+     * - Author: DDKhang (10/6/2023)
+     */
+    async statusChangeValueDialogEmployee(data) {
+      const { status, btnType } = data;
+      switch (btnType) {
+        case this.$DialogTypeEnum.ChangeValue.btnSaveChange:
+          if (status) {
+            console.log("2");
+            await this.handleBtnSave();
+          }
+          break;
+        case this.$DialogTypeEnum.ChangeValue.btnNotSaveChange:
+          if (status) {
+            console.log("Hi Not Save");
+            this.$router.push("/employee");
+          }
+          break;
+      }
+    },
+
+    /**
      * Params:
      * Des: Thực hiện chuyển sang trang table employee khi nhấn đóng form info
      * Author: DDKhang
@@ -436,7 +539,111 @@ export default {
      * ModifierAt: 11/5/2023
      */
     handleCloseFormEmployeeInfo() {
-      this.$router.push("/employee");
+      let flagEmpty = false;
+
+      switch (this.behaviorHandle) {
+        case this.$BehaviorHandleEnum.Edit:
+          // Kiểm tra sự thay đổi trên form sửa
+          // 1. Lấy toàn bộ key của đối tượng  cập nhật trước đó
+          const keysEmployeeOld = Object.keys(
+            JSON.parse(this.employeeBeforeUpdate)
+          );
+          // 2. Thực hiện kiểm tra đối tượng trước và sau khi thay đổi
+          for (let key = 0; key < keysEmployeeOld.length; key++) {
+            const keyEntity = keysEmployeeOld[key];
+            if (
+              JSON.stringify(this.employee[keyEntity]) !==
+              JSON.stringify(JSON.parse(this.employeeBeforeUpdate)[keyEntity])
+            ) {
+              flagEmpty = true;
+              break;
+            }
+          }
+          if (flagEmpty) {
+            flagEmpty = true;
+          }
+          break;
+        case this.$BehaviorHandleEnum.AddNew:
+          const noCheckEmpty = ["Gender", "EmployeeCode"];
+          const keysEmployee = Object.keys(this.employee);
+          // Kiểm tra có sự thay đổi trên form create
+          keysEmployee.forEach((key) => {
+            if (!noCheckEmpty.includes(key)) {
+              if ((this.employee[key] !== "") | null | undefined) {
+                flagEmpty = true;
+                return;
+              }
+            }
+          });
+          break;
+      }
+
+      if (flagEmpty) {
+        // ShowQuestion("Lưu lại những thay đổi?");
+        ShowQuestionChangeValue("Lưu lại những thay đổi?");
+      } else {
+        this.$router.push("/employee");
+      }
+    },
+
+    /**
+     * - Thực hiện tham chiếu đến các input có ref, hàm được gọi tại thời điểm component được mount
+     * - Author: DDKhang (11/6/2023)
+     */
+    handleReferenceInput() {
+      const formInput = this.$refs.formEmployeeRef;
+      // 1. Thực hiện truy vấn tất cả những thẻ input[required] trong formInput tương ứng
+      // const inputsRequired = formInput.querySelectorAll("input[required]");
+      const inputEmployeeCode = this.$refs.textCodeEmployee;
+      const inputFullName = this.$refs.inputFullName;
+      const cbUnit = this.$refs.comboboxDepartment;
+
+      const inputsRequired = [
+        {
+          inputElement: inputEmployeeCode,
+          name: "EmployeeCode",
+        },
+        {
+          inputElement: inputFullName,
+          name: "FullName",
+        },
+        {
+          inputElement: cbUnit,
+          name: "DepartmentId",
+        },
+      ];
+
+      this.inputsRequired = inputsRequired;
+    },
+
+    /**
+     * - Thực hiện hiển thị lỗi xác thực trên input
+     * - Author: DDKhang (10/6/2023)
+     */
+    handleShowValidateInputError() {
+      let flagErrorInput = false;
+
+      this.isFirstFocusInput = true;
+      this.inputsRequired.forEach((input) => {
+        if (!this.employee[input.name] || !this.employee[input.name]) {
+          flagErrorInput = true;
+          // Tham chieu len thẻ cha (".formGroup")
+          const tagParent = input.inputElement.$el.closest(".form-group");
+          tagParent.classList.add("invalid");
+          input.inputElement.$el.setAttribute(
+            "title",
+            this?.$MISAResource?.textError?.textErrorRequired
+          );
+          if (this.isFirstFocusInput) {
+            input.inputElement.$el.focus();
+            // Thực hiện không focus vào các thẻ input lỗi khác
+            this.isFirstFocusInput = false;
+          }
+        } else {
+          flagErrorInput = false;
+        }
+      });
+      return flagErrorInput;
     },
 
     /**
@@ -447,94 +654,135 @@ export default {
      * ModifierAt: 3/5/2023
      */
     async handleBtnSave() {
-      // Cờ bắt lỗi, nếu có lỗi thì -> true
-      let flagErrorInput = false;
-      // Thực hiện focus vào thẻ input đầu tiên trong các input lỗi
-      this.isFirstFocusInput = true;
-      const formInput = document.querySelector("#form-employee");
-      // 1. Thực hiện truy vấn tất cả những thẻ input[required] trong formInput tương ứng
-      const inputsRequired = formInput.querySelectorAll("input[required]");
-      inputsRequired.forEach((input) => {
-        if (!input.value) {
-          flagErrorInput = true;
-          // Tham chieu len thẻ cha (".formGroup")
-          const tagParent = input.closest(".form-group");
-          tagParent.classList.add("invalid");
-          input.setAttribute(
-            "title",
-            this?.$MISAResource?.textError?.textErrorRequired
-          );
-          if (this.isFirstFocusInput) {
-            input.focus();
-            // Thực hiện không focus vào các thẻ input lỗi khác
-            this.isFirstFocusInput = false;
+      console.log("3");
+      try {
+        // Cờ bắt lỗi, nếu có lỗi thì -> true
+        let flagErrorInput = false;
+
+        // Thực validate form
+        let validateErrors = [];
+        // 1. Kiểm tra rỗng
+        // 1.1 Kiểm tra tên đầy đủ có rỗng
+        const checkFullName = checkBlank({
+          title: this.$MISAResource.EmployeeForm.titleInputRequired.fullName,
+          value: this.employee?.FullName,
+        });
+        if (checkFullName.status) {
+          validateErrors.push(checkFullName.msg);
+        }
+
+        // 1.2 Kiểm tra mã nhân viên có rỗng
+        const checkCodeEmployee = checkBlank({
+          title:
+            this.$MISAResource.EmployeeForm.titleInputRequired.employeeCode,
+          value: this.employee?.EmployeeCode,
+        });
+        if (checkCodeEmployee.status) {
+          validateErrors.push(checkCodeEmployee.msg);
+        }
+        // 1.3 Kiểm tra phòng ban có rỗng
+        const checkDepartment = checkBlank({
+          title: this.$MISAResource.EmployeeForm.titleInputRequired.unit,
+          value: this.employee?.DepartmentId,
+        });
+        if (checkDepartment.status) {
+          validateErrors.push(checkDepartment.msg);
+        }
+        // 2. Kiểm tra mã nhân viên có bị trùng lặp
+        let { page, limit } = this.$route.query;
+        if (!limit) limit = 20; // giới hạn bản ghi trên trang
+        page = 1; // số trang
+        const entityFilter = {
+          pageSize: null,
+          pageNumber: null,
+          valueFilter: this.employee.EmployeeCode,
+        };
+        // const isCheckDuplicateEmployeeCode = await checkDuplicateEmployeeCode(
+        //   this.$EntityEnum.Employees,
+        //   entityFilter
+        // );
+        // 3. Kiểm tra email
+        if (this.employee?.Email) {
+          const res = checkEmail(this.employee?.Email);
+          if (!res.status) {
+            validateErrors.push(res.msg);
+            // return ShowValidate(res.msg);
           }
-        } else {
+        }
+        // 4. Kiểm tra ngày sinh nhỏ hơn ngày hiện tại
+        if (this.employee?.DateOfBirth) {
+          const res = checkDateOfBirth(this.employee?.DateOfBirth);
+          if (!res.status) {
+            validateErrors.push(res.msg);
+            // return ShowValidate(res.msg);
+          }
+        }
+        if (validateErrors.length > 0) {
           flagErrorInput = false;
+          return ShowValidate(validateErrors);
         }
-      });
-      // Thực validate form
-      // 1. Kiểm tra rỗng
-      const checkFullName = checkBlank(this.employee?.FullName);
-      const checkCodeEmployee = checkBlank(this.employee?.EmployeeCode);
-      // 2. Kiểm tra mã nhân viên có bị trùng lặp
-      const isCheckDuplicateEmployeeCode = checkDuplicateEmployeeCode(
-        this.employees,
-        this.employee.EmployeeCode
-      );
-      // 3. Kiểm tra email
-      if (this.employee?.Email) {
-        const res = checkEmail(this.employee?.Email);
-        if (!res.status) {
-          return ShowValidate(res.msg);
-        }
-      }
-      if (checkFullName.status || checkCodeEmployee.status) {
-        return ShowValidate(checkFullName.msg);
-      }
+        // Nếu không xảy ra lỗi trên những thẻ input
+        if (!flagErrorInput && validateErrors.length === 0) {
+          if (
+            this.behaviorHandle === this.$BehaviorHandleEnum.AddNew ||
+            this.behaviorHandle === this.$BehaviorHandleEnum.Duplicate
+          ) {
+            // Thực hiện thêm
+            //  Kiểm tra trùng lặp mã nhân viên - khi thêm
+            const isCheckDuplicateEmployeeCode =
+              await checkDuplicateEmployeeCode(
+                this.$EntityEnum.Employees,
+                entityFilter
+              );
+            if (isCheckDuplicateEmployeeCode.status) {
+              return ShowValidate([isCheckDuplicateEmployeeCode.msg]);
+            }
+            // 1. Thực hiện gọi api thêm nhân viên
+            const res = await postInfoEntity(
+              this.$EntityEnum.Employees,
+              this.employee
+            );
+            if (res.response.status === MISAEnum.HttpStatusCode.Success) {
+              // Thực hiện thông báo
+              // 1. Thông tin thông báo
+              const toastInfo = {
+                status: this.$MISAResource.Toast.AddEntity.AddSuccess.status,
+                msg: this.$MISAResource.Toast.AddEntity.AddSuccess.msg,
+              };
+              // 2. Phát lên App.vue -> để hiển thị Toast
+              this.$msemitter.emit("showToast", toastInfo, 5000);
+              this.$router.push("/employee");
+            }
+          } else if (this.behaviorHandle === this.$BehaviorHandleEnum.Edit) {
+            // Thực hiện gọi api sửa nhân viên
+            const res = await updateInfoEntity(
+              this.employee.EmployeeId,
+              this.$EntityEnum.Employees,
+              this.employee
+            );
 
-      // Nếu không xảy ra lỗi trên những thẻ input
-      if (!flagErrorInput) {
-        if (
-          this.behaviorHandle === this.$BehaviorHandleEnum.AddNew ||
-          this.behaviorHandle === this.$BehaviorHandleEnum.Duplicate
-        ) {
-          // Thực hiện thêm
-          // 1. Thực hiện gọi api thêm nhân viên
-          if (isCheckDuplicateEmployeeCode.status) {
-            return ShowValidate(isCheckDuplicateEmployeeCode.msg);
+            // Thực hiện thông báo
+            if (res.status !== this.$MISAEnum.HttpStatusCode.ServerError) {
+              // 1. Thông tin thông báo
+              const toastInfo = {
+                status:
+                  this.$MISAResource.Toast.UpdateEntity.UpdateSuccess.status,
+                msg: this.$MISAResource.Toast.UpdateEntity.UpdateSuccess.msg,
+              };
+              // 2. Phát lên App.vue -> để hiển thị Toast
+              this.$msemitter.emit("showToast", toastInfo);
+            }
+            this.$router.push("/employee");
+          } else if (
+            this.behaviorHandle === this.$BehaviorHandleEnum.Duplicate
+          ) {
           }
-          // 2. Thực hiện thêm thông tin nhân viên
-          await postInfoEntity(this.$EntityEnum.Employees, this.employee);
-
-          // Thực hiện thông báo
-          // 1. Thông tin thông báo
-          const toastInfo = {
-            status: this.$MISAResource.Toast.AddEntity.AddSuccess.status,
-            msg: this.$MISAResource.Toast.AddEntity.AddSuccess.msg,
-          };
-          // 2. Phát lên App.vue -> để hiển thị Toast
-          this.$msemitter.emit("showToast", toastInfo, 5000);
-        } else if (this.behaviorHandle === this.$BehaviorHandleEnum.Edit) {
-          // Thực hiện gọi api sửa nhân viên
-          await updateInfoEntity(
-            this.employee.EmployeeId,
-            this.$EntityEnum.Employees,
-            this.employee
-          );
-
-          // Thực hiện thông báo
-          // 1. Thông tin thông báo
-          const toastInfo = {
-            status: this.$MISAResource.Toast.UpdateEntity.UpdateSuccess.status,
-            msg: this.$MISAResource.Toast.UpdateEntity.UpdateSuccess.msg,
-          };
-          // 2. Phát lên App.vue -> để hiển thị Toast
-          this.$msemitter.emit("showToast", toastInfo);
-        } else if (this.behaviorHandle === this.$BehaviorHandleEnum.Duplicate) {
+          // Thực hiện đóng form
+          // this.handleCloseFormEmployeeInfo();
+          this.$msemitter.emit("refresh");
         }
-        // Thực hiện đóng form
-        this.handleCloseFormEmployeeInfo();
+      } catch (error) {
+        CatchError(error);
       }
     },
 
@@ -550,10 +798,14 @@ export default {
       this.employee.EmployeeCode = res.data;
 
       // Mở lại form thêm thông tin
-      if (this.behaviorHandle === this.$BehaviorHandleEnum.AddNew) {
+      if (
+        this.behaviorHandle === this.$BehaviorHandleEnum.AddNew ||
+        this.behaviorHandle === this.$BehaviorHandleEnum.Edit
+      ) {
         this.$router.push("/employee/create");
       } else if (this.behaviorHandle === this.$BehaviorHandleEnum.Duplicate) {
-        this.$router.push(`/employee/${this.employeeId}?duplicate=true`);
+        // this.$router.push(`/employee/${this.employeeId}?duplicate=true`);
+        this.$router.push(`/employee/create?duplicate=true`);
       }
     },
 
@@ -596,35 +848,6 @@ export default {
         tagCurrent.setAttribute("title", "");
       }
     },
-    /**
-     * Params:
-     * Des: Thực hiện nhấn combobox
-     * Author: DDKhang
-     * CreateAt: 3/5/2023
-     * ModifierAt: 3/5/2023
-     */
-    handlePressCombobox() {
-      showCombobox();
-    },
-
-    /**
-     * Params:
-     * Des: Xử lí việc tab trên mỗi thẻ input
-     * Author: DDKhang
-     * CreateAt: 3/5/2023
-     * ModifierAt: 3/5/2023
-     */
-    // handleTab(index, event) {
-    //   if (index === this.inputs.length - 1) {
-    //     // nếu đang ở thẻ input cuối cùng thì quay lại thẻ input đầu tiên
-    //     event.preventDefault();
-    //     this.inputs[0].focus();
-    //   } else {
-    //     // nếu đang ở thẻ input bất kỳ thì chuyển sang thẻ input tiếp theo
-    //     this.currentIndex = index + 1;
-    //     this.inputs[this.currentIndex].focus();
-    //   }
-    // },
 
     /**
      * Params:
@@ -647,6 +870,9 @@ export default {
      * ModifierAt: 26/5/2023
      */
     convertAndSetDate(dateTime) {
+      if (!dateTime) {
+        return null;
+      }
       // Chuyển đổi thành dạng Date
       const date = new Date(dateTime);
 
@@ -666,7 +892,8 @@ export default {
         day;
 
       // Cập nhật thông tin cấu trúc ngày
-      this.formattedDate = formattedDate;
+      // this.formattedDate = formattedDate;
+      return formattedDate;
     },
 
     /**
@@ -748,13 +975,16 @@ export default {
      * @param {*} option - Xử lí chọn bản ghi trên combobox bank
      * - Author: DDKhang (1/6/2023)
      */
-    handleChooseBankRecord(option) {
+    async handleChooseBankRecord(option) {
       this.employee.BankId = option.id;
-      this.$refs.inputBranch.handleAutoValue("abc");
-      this.employee = {
-        ...this.employee,
-        BrankInfo: { ...this.BrankInfo, Branch: "abc" },
-      };
+      var res = await getDataById(this.$EntityEnum.Banks, option.id);
+      // this.$refs.inputBranch.handleAutoValue("abc");
+      // Thực hiện cập nhật dữ liệu ngay lập tức cho chi nhánh khi chọn tên ngân hàng
+      this.$refs.inputBranch.$refs.refInput.value = res.data.Branch;
+      // this.employee = {
+      //   ...this.employee,
+      //   BrankInfo: { ...this.BrankInfo, Branch: "abc" },
+      // };
     },
 
     /**
@@ -795,6 +1025,10 @@ export default {
       }
     },
 
+    /**
+     * Cập nhật chi nhánh
+     * - Author: DDKhang (3/6/2023)
+     */
     updateBranch() {
       this.employee = {
         ...this.employee,
@@ -806,7 +1040,11 @@ export default {
 </script>
 
 <template>
-  <div id="form-employee" class="form-employee dialog-close">
+  <div
+    id="form-employee"
+    ref="formEmployeeRef"
+    class="form-employee dialog-close"
+  >
     <div class="form-employee-wrapper">
       <!-- UI FORM ADD EMPLOYEE -->
       <form @keydown="handleKeyDownForm" class="form-info-employee">
@@ -862,7 +1100,7 @@ export default {
                       ref="textCodeEmployee"
                       id="textfield_codeEmployee"
                       class="firstElement"
-                      field-label="Mã nhân viên"
+                      field-label="Mã"
                       name="employeeCode"
                       v-model="employee.EmployeeCode"
                       :tabindex="this.$TabIndex.formEmployeeInfo.codeEmployee"
@@ -939,48 +1177,6 @@ export default {
                       :tabindex="this.$TabIndex.formEmployeeInfo.comboboxUnit"
                     ></MISACombobox>
                   </div>
-
-                  <!-- <input
-                    type="text"
-                    placeholder="Phòng nhân sự"
-                    :tabindex="this.$TabIndex.formEmployeeInfo.comboboxUnit"
-                    name="unit"
-                    v-model="this.department.DepartmentName"
-                    ref="comboboxDepartment"
-                    @blur="validateInput"
-                  /> -->
-                  <!-- <div class="dropdown width-full" @click="handlePressCombobox">
-                    <div class="combobox-input form-group">
-                      <MISAInput
-                        placeholder="Phòng nhân sự"
-                        :tabindex="this.$TabIndex.formEmployeeInfo.comboboxUnit"
-                        name="unit"
-                        v-model="this.department.DepartmentName"
-                        ref="comboboxDepartment"
-                        @blur="validateInput"
-                        required="true"
-                      ></MISAInput>
-                      <div
-                        class="combobox-input__icon border-left-none top-align"
-                      >
-                        <div class="icon-combobox--arrow"></div>
-                      </div>
-                    </div>
-                    <ul
-                      id="contentUnitCombobox"
-                      class="options combobox-options--below"
-                    >
-                      <li
-                        class="option"
-                        v-for="department in this.departments"
-                        @click="
-                          this.handleComboboxDepartment(department.DepartmentId)
-                        "
-                      >
-                        {{ department.DepartmentName }}
-                      </li>
-                    </ul>
-                  </div> -->
                   <small class="form-message--error"></small>
                 </div>
 
@@ -994,6 +1190,7 @@ export default {
                     type="text"
                     name="title"
                     placeholder=""
+                    v-model="this.employee.Title"
                     :tabindex="this.$TabIndex.formEmployeeInfo.title"
                     ref="input4"
                   ></MISAInput>
@@ -1172,7 +1369,8 @@ export default {
                       class="width-full min-width-200"
                       type="date"
                       id="textfield__dateOfBirth"
-                      name="dateOfBirth"
+                      name="identityDate"
+                      v-model="this.employee.IdentityDate"
                       :tabindex="this.$TabIndex.formEmployeeInfo.datetime"
                       ref="input10"
                     ></MISAInput>
@@ -1398,6 +1596,7 @@ export default {
                       :listItemValue="this.cbListBank"
                       :handleChooseRecord="this.handleChooseBankRecord"
                       ref="comboboxBank"
+                      placeholderInput=""
                       :defaultValueInput="handleDefaultValueBankCombobox"
                       :tabindex="this.$TabIndex.formEmployeeInfo.bankName"
                     ></MISACombobox>
@@ -1423,6 +1622,7 @@ export default {
                     type="text"
                     name="branch"
                     placeholder=""
+                    :readonly="true"
                     :modelValue="
                       this.employee.BankInfo && this.employee.BankInfo.Branch
                     "
@@ -1467,9 +1667,9 @@ export default {
               {{ this.$MISAResource.ButtonText.formInfoEmployee.btnSave }}
             </button> -->
 
+            <!-- v-if="this.behaviorHandle !== this.$BehaviorHandleEnum.Edit" -->
             <MISAButton
               id="btnSaveAndAdd"
-              v-if="this.behaviorHandle !== this.$BehaviorHandleEnum.Edit"
               class="info-employee-footer-btnKeepAdd btn-hover btn-pressed"
               @click.prevent="handleBtnSaveAndAdd"
               :tabindex="this.$TabIndex.formEmployeeInfo.saveAndAdd"

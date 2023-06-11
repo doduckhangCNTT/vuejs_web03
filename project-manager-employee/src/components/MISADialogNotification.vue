@@ -7,6 +7,7 @@ export default {
   },
   methods: {
     btnAgree() {
+      // Phát đến EmployeeForm.vue
       this.$msemitter.emit("closeDialogNotice");
     },
   },
@@ -14,7 +15,7 @@ export default {
 </script>
 
 <template>
-  <div id="dialog" class="dialog dialog-close">
+  <!-- <div id="dialog" class="dialog dialog-close">
     <div class="dialog-warning">
       <div class="dialog-warning__notification">
         <div class="dialog-error__icon">
@@ -37,7 +38,39 @@ export default {
         </button>
       </div>
     </div>
+  </div> -->
+  <div class="dialog">
+    <div class="dialog-question min-width-dialog">
+      <div class="dialog-question__header">
+        <div class="dialog-question__header-title">
+          {{ this.$MISAResource.ButtonText.dialogNotice.title }}
+        </div>
+      </div>
+      <div class="dialog-question__des">
+        <ul>
+          <li v-for="error in this.errors">{{ error }}</li>
+        </ul>
+      </div>
+      <div class="dialog-question__button">
+        <!-- <button
+          class="dialog-question__button-cancel"
+          @click="statusDeleteEmployee(false)"
+        >
+          {{ this.$MISAResource.ButtonText.dialogNotice.btnCancel }}
+        </button> -->
+        <button
+          class="dialog-question__button-ok dialog-question__button-delete btn-color-delete"
+          @click="btnAgree"
+        >
+          {{ this.$MISAResource.ButtonText.dialogNotice.btnAgree }}
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
-<style lang="scss" scoped></style>
+<style scoped>
+.dialog-question__button-ok {
+  background-color: #50b83c;
+}
+</style>

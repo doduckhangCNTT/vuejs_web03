@@ -37,6 +37,7 @@ export default {
     await this.fetchDataByPageAndLimit();
     // Lắng nghe sự kiện được truyền đến
     this.$msemitter.on("refresh", this.reloadData);
+    // Lắng nghe tín hiệu từ EmployeeHome.vue
     this.$msemitter.on("listEmployeeSearch", this.handleShowListEmployeeSearch);
   },
   async mounted() {
@@ -50,9 +51,18 @@ export default {
   watch: {
     "$route.query": {
       async handler() {
-        console.log("QualityKey: ", Object.keys(this.$route.query).length);
-        if (Object.keys(this.$route.query).length > 0) {
-          console.log("Call");
+        /**
+         * - Mục đích là để khi refresh trang nếu trên url có query search thì thực hiện lấy giá trị với query đó
+         * - "!this.$route.query.page" việc cho thêm điều kiện này là bởi khi bấm "chọn, next, previous" thì sẽ ko bị "tự động" thực hiện hàm bên trong này
+         * - Câu hỏi đặt ra: "Thế không Refesh có giá trị page sao" -> Thì nó vẫn refresh vì "ngay điều kiện bên dưới đã gọi đến hàm fetchDataByPageAndLimit() "
+         * - Điều kiện này chỉ thực hiện khi mà trên url chỉ có "duy nhất query search" vd: "http://127.0.0.1:5173/employee?search=test"
+         */
+        if (this.$route.query.search && !this.$route.query.page) {
+          // Phát đến EmployeeHome.vue
+          // this.$msemitter.emit("handleSearch");
+          // this.fetchDataByPageAndLimit();
+        }
+        if (this.$route.query.page || this.$route.query.limit) {
           this.fetchDataByPageAndLimit();
         }
       },
@@ -76,7 +86,7 @@ export default {
      */
     async fetchDataByPageAndLimit() {
       // Lấy query trên url
-      let { page, limit } = this.$route.query;
+      let { page, limit, search } = this.$route.query;
       let res;
       this.loading = true;
       // progress bar
@@ -88,53 +98,78 @@ export default {
           this.loading = false;
         }
       }, 20);
+
       if (page && limit) {
-        // Thực hiện kiểm tra khi chọn số lượng bản ghi, mà lấy giá trị page của trang trước đó -> lấy ra số bản ghi rỗng
-        const response = await getData(`${BaseUrl}/Employees/filter`);
+        // Thực hiện kiểm tra khi chọn số lượng bản ghi, mà lấy giá trị page của trang trước đó
+        // const response = await getData(`${BaseUrl}/Employees/filter`);
+        let entityFilterInitial = {
+          pageSize: limit,
+          pageNumber: page,
+          valueFilter: null,
+        };
+        if (search) {
+          entityFilterInitial = { ...entityFilterInitial, valueFilter: search };
+        }
+        // Gọi api
+        res = await filterInfoEntity(
+          this.$EntityEnum.Employees,
+          entityFilterInitial
+        );
         // 1. Thực hiện tính toán tổng số trang ứng với limit hiện tại
-        const totalRecords = response.data.TotalRecord;
+        const totalRecords = res.data.TotalRecord;
         const totalPage = Math.ceil(totalRecords / limit);
         // 2. So sánh page trên url so với giá trị page (ứng với limit mới)
         if (page > totalPage) {
           page = totalPage;
           this.$router.push(`/employee?page=${page}&limit=${limit}`);
         }
+
+        this.employees = res.data.Data;
+
         try {
-          res = await getData(
-            `${BaseUrl}/Employees/filter?pageSize=${limit}&pageNumber=${page}`
-          );
-          // const employeeFilter = {
-          //   limit,
-          //   page,
+          // // Chuỗi truy vấn tìm kiếm
+          // let entityFilter = {
+          //   pageSize: limit,
+          //   pageNumber: page,
+          //   valueFilter: null,
           // };
-          // res = await filterInfoEntity(
-          //   this.$EntityName.Employees,
-          //   employeeFilter
-          // );
-          const employeesArray = res.data.Data;
+          // if (search) {
+          //   entityFilter = { ...entityFilter, valueFilter: search };
+          //   res = await filterInfoEntity(
+          //     this.$EntityEnum.Employees,
+          //     entityFilter
+          //   );
+          //   this.employees = res.data.Data;
+          // }
           this.loadingProgress = 100;
-          // this.employees = res.data.Data;
 
-          const result = Promise.all(
-            employeesArray.map(async (employee) => {
-              if (employee.BankId) {
-                const res = await this.fetchBankInfo(employee.BankId);
-                const bankInfo = res.data;
-                return {
-                  ...employee,
-                  bankInfo,
-                };
-              } else {
-                return {
-                  ...employee,
-                  bankInfo: {},
-                };
-              }
-            })
-          );
-          const resolvedResult = await result;
-          this.employees = resolvedResult;
-
+          // const employeesArray = res.data.Data;
+          // const result = Promise.all(
+          //   employeesArray.map(async (employee) => {
+          //     if (employee.BankId && employee.DepartmentId) {
+          //       const res = await this.fetchBankInfo(employee.BankId);
+          //       const bankInfo = res.data;
+          //       const resDepartment = await getDataById(
+          //         this.$EntityEnum.Departments,
+          //         employee.DepartmentId
+          //       );
+          //       const departmentInfo = resDepartment.data;
+          //       return {
+          //         ...employee,
+          //         bankInfo,
+          //         departmentInfo,
+          //       };
+          //     } else {
+          //       return {
+          //         ...employee,
+          //         bankInfo: {},
+          //         departmentInfo: {},
+          //       };
+          //     }
+          //   })
+          // );
+          // const resolvedResult = await result;
+          // this.employees = resolvedResult;
           this.loading = false;
         } catch (error) {
           this.isLoading = false;
@@ -144,40 +179,50 @@ export default {
         const page = 1;
         const limit = 20;
         try {
-          // const employeeFilter = {
-          //   limit,
-          //   page,
-          // };
-          // res = await filterInfoEntity(
-          //   this.$EntityEnum.Employees,
-          //   employeeFilter
-          // );
-          res = await getData(
-            `${BaseUrl}/Employees/filter?pageSize=${limit}&pageNumber=${page}`
+          let employeeFilter = {
+            pageSize: limit,
+            pageNumber: page,
+            valueFilter: null,
+          };
+          // Kiểm tra có truy vấn search
+          if (search) {
+            employeeFilter = { ...employeeFilter, valueFilter: search };
+          }
+          // Gọi api
+          res = await filterInfoEntity(
+            this.$EntityEnum.Employees,
+            employeeFilter
           );
           this.loadingProgress = 100;
-          // this.employees = res.data.Data;
+          this.employees = res.data.Data;
 
-          const employeesArray = res.data.Data;
-          const result = Promise.all(
-            employeesArray.map(async (employee) => {
-              if (employee.BankId) {
-                const res = await this.fetchBankInfo(employee.BankId);
-                const bankInfo = res.data;
-                return {
-                  ...employee,
-                  bankInfo,
-                };
-              } else {
-                return {
-                  ...employee,
-                  bankInfo: {},
-                };
-              }
-            })
-          );
-          const resolvedResult = await result;
-          this.employees = resolvedResult;
+          // const employeesArray = res.data.Data;
+          // const result = Promise.all(
+          //   employeesArray.map(async (employee) => {
+          //     if (employee.BankId && employee.DepartmentId) {
+          //       const res = await this.fetchBankInfo(employee.BankId);
+          //       const bankInfo = res.data;
+          //       const resDepartment = await getDataById(
+          //         this.$EntityEnum.Departments,
+          //         employee.DepartmentId
+          //       );
+          //       const departmentInfo = resDepartment.data;
+          //       return {
+          //         ...employee,
+          //         bankInfo,
+          //         departmentInfo,
+          //       };
+          //     } else {
+          //       return {
+          //         ...employee,
+          //         bankInfo: {},
+          //         departmentInfo: {},
+          //       };
+          //     }
+          //   })
+          // );
+          // const resolvedResult = await result;
+          // this.employees = resolvedResult;
           this.loading = false;
         } catch (error) {
           console.log(error);
@@ -208,8 +253,8 @@ export default {
      * ModifierAt: 30/4/2023
      */
     reloadData() {
-      // this.loadData();
-      this.fetchDataByPageAndLimit();
+      // this.fetchDataByPageAndLimit();
+      this.loadData();
     },
     /**
      * Params: null
@@ -229,11 +274,16 @@ export default {
             this.loading = false;
           }
         }, 20);
-        const res = await getData(`${BaseUrl}/Employees`);
-        // const res = await getData("https://jsonplaceholder.typicode.com/users");
+        this.$router.push("/employee?page=1&limit=20");
+        const res = await getData(
+          `${BaseUrl}/Employees/filter?pageSize=${20}&pageNumber=${1}`
+        );
         this.loadingProgress = 100;
-        this.employees = res.data;
+        this.employees = res.data.Data;
         this.loading = false;
+
+        // Phát thông tin của các bản record -> EmployeeHomeFooter.vue
+        this.$msemitter.emit("recordsResInfo", res.data);
       } catch (error) {
         console.log(error);
         this.isLoading = false;
@@ -409,6 +459,7 @@ export default {
       // this.$msemitter.emit("handleDeleteEmployeeById", [employeeId]);
       // Phát tín hiệu đến EmployeeHome.vue
       this.$msemitter.emit("deleteSingleEmployeeId", [employeeId]);
+      this.$msemitter.emit("refresh");
     },
 
     /**
@@ -441,7 +492,7 @@ export default {
           </th>
           <th
             class="sticky-column-thead2"
-            style="min-width: 100px; background-color: #f2f2f2; z-index: 2"
+            style="min-width: 140px; background-color: #f2f2f2; z-index: 2"
           >
             {{ this.$MISAResource.EmployeeList.thead.employeeCode.text }}
           </th>
@@ -451,7 +502,7 @@ export default {
           >
             {{ this.$MISAResource.EmployeeList.thead.employeeName.text }}
           </th>
-          <th class="table-header__gender" style="min-width: 100px">
+          <th class="table-header__gender" style="min-width: 110px">
             {{ this.$MISAResource.EmployeeList.thead.gender.text }}
           </th>
           <th style="min-width: 150px">
@@ -469,14 +520,16 @@ export default {
               }}</label
             >
           </th>
-          <th style="min-width: 80px">
+          <th style="min-width: 140px">
             {{ this.$MISAResource.EmployeeList.thead.title.text }}
           </th>
           <th class="table-header__unit" style="min-width: 100px">
             {{ this.$MISAResource.EmployeeList.thead.unit.text }}
           </th>
           <th>{{ this.$MISAResource.EmployeeList.thead.bankAccount.text }}</th>
-          <th>{{ this.$MISAResource.EmployeeList.thead.bankName.text }}</th>
+          <th style="min-width: 154px">
+            {{ this.$MISAResource.EmployeeList.thead.bankName.text }}
+          </th>
           <th style="min-width: 272px; width: 300px">
             {{ this.$MISAResource.EmployeeList.thead.branch.text }}
           </th>
@@ -507,11 +560,11 @@ export default {
             {{ this.convertDate(employee.DateOfBirth) }}
           </td>
           <td>{{ employee.IdentityNumber }}</td>
-          <td></td>
-          <td>MISA</td>
+          <td>{{ employee.Title }}</td>
+          <td>{{ employee.DepartmentName }}</td>
           <td>{{ employee?.AccountNumber }}</td>
-          <td>{{ employee.bankInfo?.BankName }}</td>
-          <td style="width: 150px">{{ employee.bankInfo?.Branch }}</td>
+          <td>{{ employee.BankName }}</td>
+          <td style="width: 150px">{{ employee.Branch }}</td>
           <td
             colspan="2"
             class="table-employee__options"

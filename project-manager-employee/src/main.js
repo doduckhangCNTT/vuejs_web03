@@ -12,6 +12,7 @@ import EntityEnum from "./config/EntityEnum";
 import ShortCutKey from "./js/ShortKeyResource";
 import MagicNumberEnum from "./js/MagicNumberEnum";
 import BehaviorHandleEnum from "./js/BehaviorHandleEnum";
+import DialogTypeEnum from "./js/DialogTypeEnum";
 
 const app = createApp(App);
 app.use(router);
@@ -27,6 +28,7 @@ globalProps.$ShortCutResource = ShortCutKey;
 globalProps.$MagicNumber = MagicNumberEnum;
 globalProps.$EntityEnum = EntityEnum;
 globalProps.$BehaviorHandleEnum = BehaviorHandleEnum;
+globalProps.$DialogTypeEnum = DialogTypeEnum;
 globalProps.$DeleteType = DeleteType;
 
 app.mount("#app");

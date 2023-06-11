@@ -45,10 +45,13 @@ export default {
         case this.$MISAEnum.HttpStatusCode.Success:
           return {
             icon: "<div class='icon-success'></div>",
-            textSuccess: "Thành công!",
+            text: "<span class='text-success'>Thành công!</span>",
           };
         case this.$MISAEnum.HttpStatusCode.ServerError:
-          return "<div class='icon-error'></div>";
+          return {
+            icon: "<div class='icon-error'></div>",
+            text: "<span class='text-error'>Lỗi!</span>",
+          };
       }
     },
   },
@@ -61,10 +64,7 @@ export default {
       <div class="toast-content">
         <div class="" v-html="this.iconStatus(toast.status).icon"></div>
         <div class="toast-content">
-          <span
-            class="icon"
-            v-html="this.iconStatus(toast.status).textSuccess"
-          ></span>
+          <span class="icon" v-html="this.iconStatus(toast.status).text"></span>
           <span>{{ toast.msg }}</span>
         </div>
       </div>
@@ -89,6 +89,11 @@ export default {
   width: 20px;
   height: 20px;
 }
+.icon-error {
+  background: url("../assets/ResourceTable/img/Sprites.64af8f61.svg") no-repeat -762px -146px;
+  width: 20px;
+  height: 20px;
+}
 
 .toast {
   background-color: #fff;
@@ -109,8 +114,12 @@ export default {
   column-gap: 8px;
 }
 
-.toast-content .icon {
+.toast-content .text-success {
   color: #50b83c;
+  font-weight: 600;
+}
+.toast-content .text-error {
+  color: red;
   font-weight: 600;
 }
 

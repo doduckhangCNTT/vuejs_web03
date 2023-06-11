@@ -73,6 +73,48 @@
   width: 18px;
   height: 20px;
 }
+.navbar__item-employee-icon {
+  background: url("../../assets/ResourceTable/img/Sprites.64af8f61.svg")
+    no-repeat -120px -1664px;
+  width: 17px;
+  height: 17px;
+}
+.navbar__item-customer-icon {
+  background: url("../../assets/ResourceTable/img/Sprites.64af8f61.svg")
+    no-repeat -636px -1631px;
+  width: 19px;
+  height: 18px;
+}
+.navbar__item-profile-icon {
+  background: url("../../assets/ResourceTable/img/Sprites.64af8f61.svg")
+    no-repeat -254px -1632px;
+  width: 18px;
+  height: 17px;
+}
+.navbar__item-bonus-icon {
+  background: url("../../assets/ResourceTable/img/Sprites.64af8f61.svg")
+    no-repeat -296px -1662px;
+  width: 18px;
+  height: 18px;
+}
+.navbar__item-problem-icon {
+  background: url("../../assets/ResourceTable/img/Sprites.64af8f61.svg")
+    no-repeat -339px -1633px;
+  width: 18px;
+  height: 17px;
+}
+.navbar__item-zoning-icon {
+  background: url("../../assets/ResourceTable/img/Sprites.64af8f61.svg")
+    no-repeat -294px -1632px;
+  width: 18px;
+  height: 17px;
+}
+.navbar__item-report-icon {
+  background: url("../../assets/ResourceTable/img/Sprites.64af8f61.svg")
+    no-repeat -514px -1632px;
+  width: 16px;
+  height: 18px;
+}
 
 .navbar__item-price-icon {
   background: url("../../assets/ResourceTable/img/Sprites.64af8f61.svg")
@@ -218,6 +260,14 @@
   outline: none;
   border: 0;
 }
+.main__top-add-employee .content {
+  display: flex;
+  column-gap: 8px;
+  align-items: center;
+}
+.main__top-add-employee .content .text {
+  margin-bottom: 2px;
+}
 
 .main__table-filter {
 }
@@ -268,14 +318,44 @@
 
 .main__table-handleOnTable {
   display: flex;
-  column-gap: 10px;
+  justify-content: space-between;
+  margin: 12px 20px;
+  /* column-gap: 10px;
   justify-content: flex-end;
   padding: 12px 20px;
-  align-items: center;
+  align-items: center; */
 }
 
 .main__table-qualityRecordChoose {
   font-size: 14px;
+  display: flex;
+  align-items: center;
+  column-gap: 10px;
+}
+.main__table-qualityRecordChoose .delete-all {
+  font-weight: 700;
+  padding: 8px 19px;
+  border-radius: 4px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  color: #ff2b2b;
+  background-color: #ff000028;
+
+  transition: all 0.5s;
+}
+.main__table-qualityRecordChoose .delete-all:hover {
+  opacity: 0.8;
+  cursor: pointer;
+}
+
+.main__table-handleOnTable-base {
+  display: flex;
+  column-gap: 10px;
+}
+
+.main__table-qualityRecordChoose .numberRecorderChoose {
+  font-weight: 700;
 }
 
 .main__table-handleOnTable-search {

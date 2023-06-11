@@ -1,5 +1,4 @@
 <script>
-import { showCombobox } from "../../functions/Combobox";
 import _ from "lodash";
 import { FormatNumber } from "../../functions/FormatNumber";
 import MISACombobox from "../../components/MISACombobox.vue";
@@ -13,14 +12,18 @@ export default {
       optionsNumberRecord: [
         {
           id: 1,
-          value: 15,
+          value: 10,
         },
         {
           id: 2,
-          value: 20,
+          value: 15,
         },
         {
           id: 3,
+          value: 20,
+        },
+        {
+          id: 4,
           value: 30,
         },
       ],
@@ -39,6 +42,7 @@ export default {
      * - Thực hiện lấy thông tin phản hồi từ filter số bản ghi theo page, limit
      */
     this.$msemitter.on("recordsResInfo", this.getRecordsResInfo);
+    // Lắng nghe tín hiệu từ EmployeeHome.vue
     this.$msemitter.on("listEmployeeSearch", this.totalRecord);
   },
   watch: {
@@ -71,23 +75,55 @@ export default {
      * ModifierAt: 9/5/2023
      */
     handleChooseQualityRecord(option) {
-      let page = this.$route.query.page;
-      if (page) {
-        this.$router.push(
-          `/employee?page=${parseInt(page)}&limit=${option.value}`
-        );
+      let { page, search } = this.$route.query;
+      if (search) {
+        if (page) {
+          console.log({
+            page,
+            totalRecord: this.recordData.TotalPageByCondition,
+          });
+
+          // Nếu tổng số bản ghi nhỏ hơn số bản ghi trên trang thì quay về trang 1
+          if (this.recordData.TotalRecordsResult < option.value) {
+            page = 1;
+          }
+
+          this.$router.push(
+            `/employee?page=${parseInt(page)}&limit=${parseInt(
+              option.value
+            )}&search=${search}`
+          );
+        } else {
+          page = 1;
+          this.$router.push(
+            `/employee?page=${parseInt(page)}&limit=${parseInt(
+              option.value
+            )}&search=${search}`
+          );
+        }
       } else {
-        page = 1;
-        this.$router.push(
-          `/employee?page=${parseInt(page)}&limit=${option.value}`
-        );
+        if (page) {
+          this.$router.push(
+            `/employee?page=${parseInt(page)}&limit=${option.value}`
+          );
+        } else {
+          page = 1;
+          this.$router.push(
+            `/employee?page=${parseInt(page)}&limit=${option.value}`
+          );
+        }
       }
 
       // Phát đến EmployeeHome.vue
       this.$msemitter.emit("emptyTextSearch");
     },
 
+    /**
+     * - Tổng số bản ghi tìm kiếm được
+     * - Author: DDKhang (30/4/2023)
+     */
     totalRecord(data) {
+      console.log("Data Search: ", data);
       this.totalRecordsSearch = data.length;
     },
     /**
@@ -100,16 +136,6 @@ export default {
      */
     getRecordsResInfo(_recordData) {
       this.recordData = _recordData;
-    },
-    /**
-     * Params: null
-     * Des: Xử lí hiển thị combobox trên trang chủ
-     * Author: DDKhang
-     * CreateAt: 30/4/2023
-     * ModifierAt: 30/4/2023
-     */
-    handlePressCombobox() {
-      showCombobox();
     },
     /**
      *
@@ -130,13 +156,19 @@ export default {
      * ModifierAt: 9/5/2023
      */
     previousPage() {
-      let page = this.$route.query.page;
-      let limit = this.$route.query.limit;
+      let { page, limit, search } = this.$route.query;
+      // Chuỗi truy vấn khi thực hiện tìm kiếm
+      let querySearch = "";
+      if (search) {
+        querySearch = `&search=${search}`;
+      }
+
       if (page && parseInt(page) > 1) {
         this.$router.push(
-          `/employee?page=${parseInt(page) - 1}&limit=${limit}`
+          `/employee?page=${parseInt(page) - 1}&limit=${limit}${querySearch}`
         );
       }
+
       // else {
       //   this.$router.push(`/employee?page=1&limit=${this.selectValueOption}`);
       // }
@@ -149,41 +181,45 @@ export default {
      * ModifierAt: 9/5/2023
      */
     nextPage() {
-      let page = this.$route.query.page;
-      let limit = this.$route.query.limit;
-      if (page) {
-        if (page < this.recordData.TotalPage) {
-          this.$router.push(
-            `/employee?page=${parseInt(page) + 1}&limit=${limit}`
-          );
+      let { page, limit, search } = this.$route.query;
+      if (search) {
+        // Xử lí khi có query search
+        if (page) {
+          // Kiểm tra page hiện tại có vượt qua số tổng số page
+          if (page < this.recordData.TotalPageByCondition) {
+            this.$router.push(
+              `/employee?page=${
+                parseInt(page) + 1
+              }&limit=${limit}&search=${search}`
+            );
+          }
+        } else {
+          page = 1;
+          if (page < this.recordData.TotalPageByCondition) {
+            this.$router.push(
+              `/employee?page=${parseInt(page) + 1}&limit=${
+                this.selectValueOption
+              }&search=${search}`
+            );
+          }
         }
       } else {
-        page = 1;
-        this.$router.push(
-          `/employee?page=${parseInt(page) + 1}&limit=${this.selectValueOption}`
-        );
+        if (page) {
+          if (page < this.recordData.TotalPage) {
+            this.$router.push(
+              `/employee?page=${parseInt(page) + 1}&limit=${limit}`
+            );
+          }
+        } else {
+          page = 1;
+          this.$router.push(
+            `/employee?page=${parseInt(page) + 1}&limit=${
+              this.selectValueOption
+            }`
+          );
+        }
       }
     },
-    /**
-     * @param():
-     *  + option(number) số lượng bản ghi được chọn trên combobox
-     * Des: Xử lí hiển thị dữ liệu tương ứng khi chọn số lượng bản ghi trên combobox
-     * Author: DDKhang
-     * CreateAt: 9/5/2023
-     * ModifierAt: 9/5/2023
-     */
-    // handleChooseQualityRecorder(option) {
-    // console.log("Option: ", option);
-    // if (option) {
-    //   let page = this.$route.query.page;
-    //   if (page) {
-    //     this.$router.push(`/employee?page=${parseInt(page)}&limit=${option}`);
-    //   } else {
-    //     page = 1;
-    //     this.$router.push(`/employee?page=${parseInt(page)}&limit=${option}`);
-    //   }
-    // }
-    // },
 
     /**
      * Des: Xử lí việc cung cấp class cho combobox
@@ -215,8 +251,8 @@ export default {
     <div class="main__footer-total-records">
       Tổng số:
       {{
-        totalRecordsSearch > 0
-          ? totalRecordsSearch
+        this.$route.query.search
+          ? this.totalRecordsSearch || this.recordData.TotalRecordsResult // this.totalRecordsSearch
           : this.handleFormatNumber(this.recordData.TotalRecord)
       }}
       bản ghi
@@ -230,32 +266,16 @@ export default {
           placeholderInput="20"
           v-model="this.comboboxValue"
           :listItemValue="this.optionsNumberRecord"
-          :defaultValueInput="this.optionsNumberRecord[1]"
+          :defaultValueInput="this.optionsNumberRecord[2]"
           :handleChooseRecord="this.handleChooseQualityRecord"
         ></MISACombobox>
-
-        <!-- Combobox -->
-        <!-- <div class="dropdown width-76" @click="handlePressCombobox">
-          <div class="combobox-input">
-            <input type="text" placeholder="10" v-model="selectValueOption" />
-            <div class="combobox-input__icon border-left-none">
-              <div class="icon-combobox--arrow"></div>
-            </div>
-          </div>
-          <ul class="options combobox-options--above">
-            <li
-              class="option"
-              v-for="option in this.optionsNumberRecord"
-              :key="option"
-              @click="handleChooseQualityRecorder(option)"
-            >
-              {{ option }}
-            </li>
-          </ul>
-        </div> -->
-        <span class="main__footer-quality-record"
-          >{{ this.recordData.CurrentPage }}/{{ this.recordData.TotalPage }} bản
-          ghi
+        <span class="main__footer-quality-record">
+          {{ this.$route.query.page ? this.recordData.CurrentPage : 1 }}/{{
+            this.$route.query.search // Khi có giá trị search thì thực hiện lấy tổng số page theo điều kiện tìm ngược lại lấy toàn bộ page
+              ? this.recordData.TotalPageByCondition
+              : this.recordData.TotalPage
+          }}
+          bản ghi
         </span>
       </div>
       <div class="main__footer-paging-number">

@@ -9,46 +9,55 @@ export default {
           title: this.$MISAResource.Navbar.HomeNav.Overview.title,
           tooltip: this.$MISAResource.Navbar.HomeNav.Overview.tooltip,
           link: "/",
+          classIcon: "navbar__item-overview-icon",
         },
         {
           title: this.$MISAResource.Navbar.HomeNav.Employee.title,
           tooltip: this.$MISAResource.Navbar.HomeNav.Employee.tooltip,
           link: "/employee",
+          classIcon: "navbar__item-employee-icon",
         },
         {
           title: this.$MISAResource.Navbar.HomeNav.Customer.title,
           tooltip: this.$MISAResource.Navbar.HomeNav.Customer.tooltip,
           link: "/customer",
+          classIcon: "navbar__item-customer-icon",
         },
         {
           title: this.$MISAResource.Navbar.HomeNav.Appoint.title,
           tooltip: this.$MISAResource.Navbar.HomeNav.Appoint.tooltip,
           link: "/appoint",
+          classIcon: "navbar__item-overview-icon",
         },
         {
           title: this.$MISAResource.Navbar.HomeNav.File.title,
           tooltip: this.$MISAResource.Navbar.HomeNav.File.tooltip,
           link: "/file",
+          classIcon: "navbar__item-profile-icon",
         },
         {
           title: this.$MISAResource.Navbar.HomeNav.Bonus.title,
           tooltip: this.$MISAResource.Navbar.HomeNav.Bonus.tooltip,
           link: "/bonus",
+          classIcon: "navbar__item-bonus-icon",
         },
         {
           title: this.$MISAResource.Navbar.HomeNav.Problem.title,
           tooltip: this.$MISAResource.Navbar.HomeNav.Problem.tooltip,
           link: "/problem",
+          classIcon: "navbar__item-problem-icon",
         },
         {
           title: this.$MISAResource.Navbar.HomeNav.Zoning.title,
           tooltip: this.$MISAResource.Navbar.HomeNav.Zoning.tooltip,
           link: "/zoning",
+          classIcon: "navbar__item-zoning-icon",
         },
         {
           title: this.$MISAResource.Navbar.HomeNav.Report.title,
           tooltip: this.$MISAResource.Navbar.HomeNav.Report.tooltip,
           link: "/report",
+          classIcon: "navbar__item-report-icon",
         },
       ],
     };
@@ -75,7 +84,7 @@ export default {
         :to="item.link"
         class="navbar__item-overview"
       >
-        <div class="navbar__item-overview-icon" :title="item.tooltip"></div>
+        <div :class="item.classIcon" :title="item.tooltip"></div>
         <div class="navbar__item-title">{{ item.title }}</div>
       </router-link>
 

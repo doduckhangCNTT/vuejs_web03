@@ -326,7 +326,10 @@
   color: #e61d1d !important;
   font-size: 12px;
   margin-top: 8px;
-  display: none;
+  display: block;
   position: absolute;
   top: 56px;
+}
+.form-group .form-message--error {
+  display: none;
 }
