@@ -55,6 +55,8 @@ export default {
     this.$msemitter.on("deleteSingleEmployeeId", this.deleteOneEmployeeId);
     // Nhận tín hiệu đóng "MISADialogQuestion.vue" xóa employee
     this.$msemitter.on("closeDialogQuestion", this.statusDeleteEmployee);
+    // Thực hiện cập nhật text search rỗng
+    this.$msemitter.on("textSearchEmpty", this.handleEmptyTextSearch);
   },
   mounted() {
     window.addEventListener("keydown", this.handleKeyDown);
@@ -63,6 +65,11 @@ export default {
   },
   beforeUnmount() {
     window.removeEventListener("keydown", this.handleKeyDown);
+    this.$msemitter.off("handleSearch", this.handleSearchEmployee);
+    this.$msemitter.off("deleteSingleEmployeeId", this.deleteOneEmployeeId);
+    // Nhận tín hiệu đóng "MISADialogQuestion.vue" xóa employee
+    this.$msemitter.off("closeDialogQuestion", this.statusDeleteEmployee);
+    this.$msemitter.Off("textSearchEmpty", this.handleEmptyTextSearch);
   },
   watch: {},
   methods: {
@@ -111,6 +118,8 @@ export default {
             );
             // Cập nhật lại danh sách employee sẽ xóa => ẩn nút "Delete"
             this.checkboxListEmployeeId = [];
+            // Phát lên EmployeeList.vue
+            this.$msemitter.emit("EmptyListEmployeeDelete");
 
             if (
               numberDeleted.status === this.$MISAEnum.HttpStatusCode.NoContent
@@ -148,8 +157,7 @@ export default {
               numberDeleted.status === this.$MISAEnum.HttpStatusCode.NoContent
             ) {
               // Cập nhật lại danh sách employee sẽ xóa => ẩn nút "Delete"
-              this.checkboxListEmployeeId = [];
-
+              // this.checkboxListEmployeeId = [];
               // Thực hiện thông báo
               // 1. Thông tin thông báo
               const toastInfo = {
@@ -307,7 +315,7 @@ export default {
         );
         // Phát đến EmployeeList.vue & EmployeeHomeFooter.vue
         this.$msemitter.emit("listEmployeeSearch", res.data.Data);
-        this.textSearch = "";
+        // this.textSearch = "";
       }
     },
 

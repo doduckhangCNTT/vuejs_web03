@@ -23,7 +23,7 @@ export function checkBlank(data) {
   if (data.value?.trim() === "" || !data.value) {
     return {
       status: true,
-      msg: data.title + " bắt buộc nhập",
+      msg: data.title + " bắt buộc nhập.",
     };
   }
   return {

@@ -34,6 +34,11 @@ export default {
         listItemTop: "list-item-top",
       },
       comboboxValue: 0,
+      // defaultValue: this.optionsNumberRecord[2],
+      defaultValue: {
+        id: 3,
+        value: 20,
+      },
     };
   },
   created() {
@@ -56,6 +61,14 @@ export default {
       }
     }, 1000),
 
+    "$route.query": {
+      async handler() {
+        if (this.$route.query.limit) {
+          this.defaultValueCombobox();
+        }
+      },
+    },
+
     // comboboxValue: function () {
     //   let page = this.$route?.query.page;
     //   // Thực hiện lấy số lượng dữ liệu tương ứng với giá trị được chọn
@@ -76,6 +89,9 @@ export default {
      */
     handleChooseQualityRecord(option) {
       let { page, search } = this.$route.query;
+      this.defaultValue = { ...this.defaultValue, ...option };
+
+      this.$refs.comboboxRef.handleSetValueInput(option);
       if (search) {
         if (page) {
           console.log({
@@ -241,6 +257,33 @@ export default {
     handleComboboxValueUpdate(newVal) {
       this.comboboxValue = newVal;
     },
+
+    defaultValueCombobox() {
+      let value = this.optionsNumberRecord[2];
+      const { limit } = this.$route.query;
+      console.log("Limit: ", limit);
+      if (limit) {
+        switch (int.parseInt(limit)) {
+          case 10:
+            value = { ...this.defaultValue, id: 1, value: 10 };
+            break;
+          case 15:
+            value = { ...this.defaultValue, id: 2, value: 15 };
+            break;
+          case 20:
+            value = { ...this.defaultValue, id: 3, value: 20 };
+            break;
+          case 30:
+            value = { ...this.defaultValue, id: 4, value: 30 };
+            break;
+        }
+      }
+      console.log("Value default: ", this.defaultValue);
+      this.defaultValue = value;
+      this.handleComboboxValueUpdate(value.value);
+      // this.$refs.comboboxRef.handleSetValueInput(value);
+      // return value;
+    },
   },
   components: { MISACombobox },
 };
@@ -262,6 +305,7 @@ export default {
         <p class="number-records-text">Số bản ghi/trang:</p>
 
         <MISACombobox
+          ref="comboboxRef"
           :customClass="this.handleCustomClassCombobox()"
           placeholderInput="20"
           v-model="this.comboboxValue"

@@ -2,14 +2,14 @@ import MISAEnum from "./MISAEnum";
 
 const MISAResource = {
   textError: {
-    textErrorRequired: "không được để trống",
-    textErrorRequiredUnit: "Đơn vị không được để trống",
+    textErrorRequired: "không được để trống.",
+    textErrorRequiredUnit: "Đơn vị không được để trống.",
   },
 
   textCRUD: {
     textDeleteEmployee: "Bạn có chắc muốn xóa nhân viên đã chọn không?",
-    textAddEmployee: "Thêm thông tin nhân viên",
-    textEditEmployee: "Sửa thông tin nhân viên",
+    textAddEmployee: "Thêm thông tin nhân viên.",
+    textEditEmployee: "Sửa thông tin nhân viên.",
   },
 
   Delete: {
@@ -18,9 +18,9 @@ const MISAResource = {
   },
 
   Validate: {
-    textCheckEmail: "Email không hợp lệ",
-    textCheckDateOfBirth: "Ngày sinh cần nhỏ hơn ngày hiện tại",
-    textCheckExistEmployeeCode: "Mã nhân viên đã tồn tại!",
+    textCheckEmail: "Email không hợp lệ.",
+    textCheckDateOfBirth: "Ngày sinh cần nhỏ hơn ngày hiện tại.",
+    textCheckExistEmployeeCode: "Mã nhân viên đã tồn tại.",
   },
 
   Toast: {
@@ -56,13 +56,13 @@ const MISAResource = {
 
   ButtonText: {
     dialogQuestionChangeValue: {
-      title: "Dữ liệu đã thay đổi",
+      title: "Dữ liệu đã thay đổi.",
       btnClose: "Đóng",
       btnSave: "Lưu",
-      btnNotSave: "Không lưu",
+      btnNotSave: "Không lưu.",
     },
     dialogQuestion: {
-      title: "Thông báo",
+      title: "Thông báo.",
       btnCancel: "Không",
       btnAgree: "Có",
     },
@@ -126,7 +126,7 @@ const MISAResource = {
     qualityRecordText: "Đã chọn",
     button: {
       btnAddNewEmployee: "Thêm mới",
-      btnDeleteCheckedEmployee: "Xóa bản ghi đã chọn",
+      btnDeleteCheckedEmployee: "Xóa bản ghi đã chọn.",
       btnRefresh: {
         tooltip: "Làm mới",
       },
@@ -134,11 +134,11 @@ const MISAResource = {
         tooltip: "Tìm kiếm",
       },
       btnExportExcel: {
-        tooltip: "Xuất khẩu dữ liệu",
+        tooltip: "Xuất khẩu dữ liệu.",
       },
     },
     input: {
-      searchPlaceholder: "Tìm theo mã, tên nhân viên",
+      searchPlaceholder: "Tìm theo mã, tên nhân viên.",
     },
     listItemCompany: [
       { id: 1, value: "CÔNG TY TNHH SẢN XUẤT - THƯƠNG MẠI - DICH VỤ QUI PHÚC" },

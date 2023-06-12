@@ -8,6 +8,7 @@
   border-radius: var(--border-radius-primary);
   height: 36px;
   font-weight: 400;
+  font-family: "MISA Font";
 }
 
 .width-full {

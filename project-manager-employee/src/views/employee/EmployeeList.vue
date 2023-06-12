@@ -39,6 +39,10 @@ export default {
     this.$msemitter.on("refresh", this.reloadData);
     // Lắng nghe tín hiệu từ EmployeeHome.vue
     this.$msemitter.on("listEmployeeSearch", this.handleShowListEmployeeSearch);
+    this.$msemitter.on(
+      "EmptyListEmployeeDelete",
+      this.handleEmptyListEmployeeDelete
+    );
   },
   async mounted() {
     window.addEventListener("keydown", this.handleKeyDown);
@@ -47,6 +51,14 @@ export default {
   beforeUnmount() {
     window.removeEventListener("keydown", this.handleKeyDown);
     window.removeEventListener("click", this.handleClosePopup);
+    this.$msemitter.off(
+      "listEmployeeSearch",
+      this.handleShowListEmployeeSearch
+    );
+    this.$msemitter.off(
+      "EmptyListEmployeeDelete",
+      this.handleEmptyListEmployeeDelete
+    );
   },
   watch: {
     "$route.query": {
@@ -123,7 +135,6 @@ export default {
           page = totalPage;
           this.$router.push(`/employee?page=${page}&limit=${limit}`);
         }
-
         this.employees = res.data.Data;
 
         try {
@@ -353,6 +364,10 @@ export default {
       this.isShowContentOption[index] = !this.isShowContentOption[index];
     },
 
+    handleEmptyListEmployeeDelete() {
+      this.checkboxEmployeesId = [];
+    },
+
     /**
      * Params:
      *  + employee: Thông tin của employee khi checkbox vào
@@ -459,7 +474,7 @@ export default {
       // this.$msemitter.emit("handleDeleteEmployeeById", [employeeId]);
       // Phát tín hiệu đến EmployeeHome.vue
       this.$msemitter.emit("deleteSingleEmployeeId", [employeeId]);
-      this.$msemitter.emit("refresh");
+      // this.$msemitter.emit("refresh");
     },
 
     /**

@@ -47,6 +47,7 @@ export default {
         </div>
       </div>
       <div class="dialog-question__des">
+        <div class="dialog-icon"></div>
         <ul>
           <li v-for="error in this.errors">{{ error }}</li>
         </ul>
@@ -70,7 +71,19 @@ export default {
 </template>
 
 <style scoped>
+.dialog-question__des {
+  display: flex;
+  align-items: flex-start;
+  column-gap: 10px;
+}
+
 .dialog-question__button-ok {
   background-color: #50b83c;
+}
+
+.dialog-icon {
+  background: url("../assets/ResourceTable/img/Sprites.64af8f61.svg") no-repeat -593px -145px;
+  width: 22px;
+  height: 23px;
 }
 </style>

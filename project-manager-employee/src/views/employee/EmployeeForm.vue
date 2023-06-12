@@ -39,7 +39,7 @@ export default {
       banks: [], // Danh sách tất cả dữ liệu ngân hàng
       inputs: [],
       currentIndex: 0, // index của thẻ input hiện tại được chọn
-      isFirstFocusInput: false,
+      isFirstFocusInput: false, // Trạng thái focus lần input
       formattedDate: "",
       cbListDepartment: [], // Danh sách dữ liệu phòng ban cho combobox
       cbListBank: [], // Danh sách dữ liệu ngân hàng cho combobox
@@ -339,6 +339,10 @@ export default {
   },
 
   computed: {
+    /**
+     * - Xử lí sự thay đổi về dữ liệu của các đối tượng, mục đích để so sánh 2 đối tượng có bằng nhau hay không
+     * - Author: DDKhang (3/5/2023)
+     */
     handleChange() {
       const keysEmployeeOld = Object.keys(this.employeeBeforeUpdate);
       for (let key = 0; key < keysEmployeeOld.length; key++) {
@@ -518,13 +522,13 @@ export default {
       switch (btnType) {
         case this.$DialogTypeEnum.ChangeValue.btnSaveChange:
           if (status) {
-            console.log("2");
+            // console.log("2");
             await this.handleBtnSave();
           }
           break;
         case this.$DialogTypeEnum.ChangeValue.btnNotSaveChange:
           if (status) {
-            console.log("Hi Not Save");
+            // console.log("Hi Not Save");
             this.$router.push("/employee");
           }
           break;
@@ -654,7 +658,7 @@ export default {
      * ModifierAt: 3/5/2023
      */
     async handleBtnSave() {
-      console.log("3");
+      // console.log("3");
       try {
         // Cờ bắt lỗi, nếu có lỗi thì -> true
         let flagErrorInput = false;
@@ -742,7 +746,10 @@ export default {
               this.$EntityEnum.Employees,
               this.employee
             );
-            if (res.response.status === MISAEnum.HttpStatusCode.Success) {
+            if (
+              res.response.status ===
+              this.$MISAEnum.HttpStatusCode.CreatedSuccess
+            ) {
               // Thực hiện thông báo
               // 1. Thông tin thông báo
               const toastInfo = {
@@ -754,6 +761,18 @@ export default {
               this.$router.push("/employee");
             }
           } else if (this.behaviorHandle === this.$BehaviorHandleEnum.Edit) {
+            // Kiểm tra trùng lặp mã code khi có ý định thay đổi mã code hiện tại
+            const resData = await getDataById(
+              this.$EntityEnum.Employees,
+              this.employee.EmployeeId
+            );
+            const employeeNow = resData.data;
+            if (employeeNow.EmployeeCode !== this.employee.EmployeeCode) {
+              return ShowValidate([
+                this.$MISAResource.Validate.textCheckDuplicateEmployeeCode,
+              ]);
+            }
+
             // Thực hiện gọi api sửa nhân viên
             const res = await updateInfoEntity(
               this.employee.EmployeeId,
@@ -779,6 +798,7 @@ export default {
           }
           // Thực hiện đóng form
           // this.handleCloseFormEmployeeInfo();
+          this.$msemitter.emit("textSearchEmpty");
           this.$msemitter.emit("refresh");
         }
       } catch (error) {
@@ -1080,7 +1100,7 @@ export default {
                           .text
                       }}
                       <span class="icon-require">
-                        <label for="" title="Bắt buộc nhập">*</label>
+                        <label for="" title="Bắt buộc nhập.">*</label>
                       </span>
                     </label>
                     <!-- <input
@@ -1275,6 +1295,7 @@ export default {
                           value="1"
                           v-model="this.employee.Gender"
                           ref="input7"
+                          :tabindex="this.$TabIndex.formEmployeeInfo.genderMale"
                         />
                         <p>
                           {{
@@ -1297,6 +1318,7 @@ export default {
                           value="2"
                           v-model="this.employee.Gender"
                           ref="input8"
+                          :tabindex="this.$TabIndex.formEmployeeInfo.genderMale"
                         />
                         <p>
                           {{

@@ -38,15 +38,17 @@ export function CatchError(err) {
       break;
     default:
       // Thực hiện thông báo
-      // 1. Thông tin thông báo
-      const toastInfo1 = {
-        status: MISAResource.Toast.Server.Error.status,
-        // msg: MISAResource.Toast.Server.Error.msg,
-        msg: err.response?.data.UserMessage,
-      };
-      // 2. Phát lên App.vue -> để hiển thị Toast
-      console.log(err);
-      emitter.emit("showToast", toastInfo1);
+      // // 1. Thông tin thông báo
+      // const toastInfo1 = {
+      //   status: MISAResource.Toast.Server.Error.status,
+      //   // msg: MISAResource.Toast.Server.Error.msg,
+      //   msg: err.response?.data.UserMessage,
+      // };
+      // // 2. Phát lên App.vue -> để hiển thị Toast
+      // console.log(err);
+      // emitter.emit("showToast", toastInfo1);
+
+      ShowValidate(err.response.data.UserMessages);
       break;
   }
 }

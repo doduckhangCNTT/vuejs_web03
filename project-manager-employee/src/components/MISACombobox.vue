@@ -64,6 +64,7 @@ export default {
      */
     defaultValueInput: {
       handler(newVal) {
+        console.log("New value: ", newVal);
         // Cần phải kiểm tra xem có giá trị defaul bởi khi thực hiện "Thêm" thì khi nhấn sang, thực hiện trên input datetime, radio... thì dẫn đến giá trị trên input checkbox thành undifined
         if (newVal.id) {
           this.value = newVal ?? { id: "", value: "" };
@@ -298,6 +299,11 @@ export default {
           );
         }
       }
+    },
+
+    handleSetValueInput(data) {
+      console.log("Data: ", data);
+      this.value = data;
     },
   },
 };
