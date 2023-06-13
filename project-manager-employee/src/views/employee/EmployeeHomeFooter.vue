@@ -50,6 +50,10 @@ export default {
     // Lắng nghe tín hiệu từ EmployeeHome.vue
     this.$msemitter.on("listEmployeeSearch", this.totalRecord);
   },
+  mounted() {
+    // Thực hiện xét giá trị cho combobox khi refresh trang
+    this.defaultValueCombobox();
+  },
   watch: {
     selectValueOption: _.debounce(function (newValue, oldValue) {
       let page = this.$route.query.page;
@@ -64,6 +68,7 @@ export default {
     "$route.query": {
       async handler() {
         if (this.$route.query.limit) {
+          console.log("ABC");
           this.defaultValueCombobox();
         }
       },
@@ -214,7 +219,7 @@ export default {
           if (page < this.recordData.TotalPageByCondition) {
             this.$router.push(
               `/employee?page=${parseInt(page) + 1}&limit=${
-                this.selectValueOption
+                this.defaultValue.value
               }&search=${search}`
             );
           }
@@ -230,7 +235,7 @@ export default {
           page = 1;
           this.$router.push(
             `/employee?page=${parseInt(page) + 1}&limit=${
-              this.selectValueOption
+              this.defaultValue.value
             }`
           );
         }
@@ -258,31 +263,22 @@ export default {
       this.comboboxValue = newVal;
     },
 
+    /**
+     * - Thực hiện đặt giá trị mặc định cho combobox, khi
+     */
     defaultValueCombobox() {
-      let value = this.optionsNumberRecord[2];
-      const { limit } = this.$route.query;
-      console.log("Limit: ", limit);
+      let { limit } = this.$route.query;
+      limit = limit || 20;
       if (limit) {
-        switch (int.parseInt(limit)) {
-          case 10:
-            value = { ...this.defaultValue, id: 1, value: 10 };
-            break;
-          case 15:
-            value = { ...this.defaultValue, id: 2, value: 15 };
-            break;
-          case 20:
-            value = { ...this.defaultValue, id: 3, value: 20 };
-            break;
-          case 30:
-            value = { ...this.defaultValue, id: 4, value: 30 };
-            break;
-        }
+        // Thực hiện tìm bản ghi có giới hạn tương ứng
+        const optionNumberRecord = this.optionsNumberRecord.find(
+          (op) => op.value === parseInt(limit)
+        );
+        // Đặt giá trị mặc định cho combobox
+        this.defaultValue = optionNumberRecord;
+        // Thực hiện tham chiếu đến hàm xét giá trị cho thẻ input của combobox
+        this.$refs.comboboxRef.handleSetValueInput(optionNumberRecord);
       }
-      console.log("Value default: ", this.defaultValue);
-      this.defaultValue = value;
-      this.handleComboboxValueUpdate(value.value);
-      // this.$refs.comboboxRef.handleSetValueInput(value);
-      // return value;
     },
   },
   components: { MISACombobox },
@@ -310,7 +306,7 @@ export default {
           placeholderInput="20"
           v-model="this.comboboxValue"
           :listItemValue="this.optionsNumberRecord"
-          :defaultValueInput="this.optionsNumberRecord[2]"
+          :defaultValueInput="this.defaultValue"
           :handleChooseRecord="this.handleChooseQualityRecord"
         ></MISACombobox>
         <span class="main__footer-quality-record">

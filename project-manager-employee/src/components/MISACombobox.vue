@@ -65,7 +65,7 @@ export default {
     defaultValueInput: {
       handler(newVal) {
         console.log("New value: ", newVal);
-        // Cần phải kiểm tra xem có giá trị defaul bởi khi thực hiện "Thêm" thì khi nhấn sang, thực hiện trên input datetime, radio... thì dẫn đến giá trị trên input checkbox thành undifined
+        // Cần phải kiểm tra xem có giá trị default bởi khi thực hiện "Thêm" thì khi nhấn sang, thực hiện trên input datetime, radio... thì dẫn đến giá trị trên input checkbox thành undifined
         if (newVal.id) {
           this.value = newVal ?? { id: "", value: "" };
           // Thực hiện cập nhật vị trí của object trong listItem khi có giá trị mặc định cho combobox
@@ -301,9 +301,15 @@ export default {
       }
     },
 
+    /**
+     *
+     * @param {*} data - Dữ liệu mặc định, khi chọn hoặc lấy limit (giới hạn bản ghi) trên url
+     * - Thực hiện đặt giá trị, khi lựa chọn hoặc khi có limit trên url
+     * - Author: DDKhang (12/6/2023)
+     */
     handleSetValueInput(data) {
-      console.log("Data: ", data);
       this.value = data;
+      console.log("Value: ", this.value);
     },
   },
 };

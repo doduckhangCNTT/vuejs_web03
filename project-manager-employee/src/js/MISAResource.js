@@ -21,6 +21,8 @@ const MISAResource = {
     textCheckEmail: "Email không hợp lệ.",
     textCheckDateOfBirth: "Ngày sinh cần nhỏ hơn ngày hiện tại.",
     textCheckExistEmployeeCode: "Mã nhân viên đã tồn tại.",
+    textCheckDuplicateEmployeeCode:
+      "Mã nhân viên không đúng phải của nhân viên này.",
   },
 
   Toast: {
